@@ -4,7 +4,6 @@ go 1.26.1
 
 require (
 	github.com/clodoaldomarques/core-sdk v0.5.12
-	github.com/clodoaldomarques/ledger-events v0.0.0-20260816184943-a2039a10c754
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/labstack/echo/v4 v4.15.4
 )
@@ -65,4 +64,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260727163830-6c54dddc4772 // indirect
 	google.golang.org/grpc v1.82.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )
