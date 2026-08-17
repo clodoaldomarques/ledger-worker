@@ -1,0 +1,118 @@
+[
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/v1/ledger/config/101/401"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"config_id\":\"a56a160a-5deb-4095-a1bc-881d22c5779d\",\"level\":\"tenant\",\"processing_code\":\"101\",\"org_id\":\"TN-77add76c-e395-446b-b306-1a0f9cb99a31\",\"description\":\"Compra a vista\",\"scripts\":[{\"script_id\":101,\"flow\":\"regular\",\"description\":\"Compra a vista - Cartão\",\"expression\":\"Amounts.amount + Fees.iof\"},{\"script_id\":101,\"flow\":\"migration\",\"description\":\"Compra a vista - PIX\",\"expression\":\"Amounts.amount\"}],\"enable\":true,\"created_at\":\"2026-07-26T13:52:37.610976817-03:00\",\"updated_at\":\"2026-07-26T13:52:37.610981147-03:00\",\"version\":1}",
+      "delay": {
+        "timeUnit": "MILLISECONDS",
+        "value": 100
+      }
+    },
+    "times": {
+      "unlimited": true
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/v1/ledger/config/102/401"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"config_id\":\"b67b171b-6efc-4a53-b2cd-992e33d6880e\",\"level\":\"tenant\",\"processing_code\":\"102\",\"org_id\":\"TN-77add76c-e395-446b-b306-1a0f9cb99a31\",\"description\":\"Compra parcelada\",\"scripts\":[{\"script_id\":102,\"flow\":\"regular\",\"description\":\"Compra parcelada - Cartão\",\"expression\":\"Amounts.principal - Sum(Fees)\"},{\"script_id\":102,\"flow\":\"migration\",\"description\":\"Compra parcelada - PIX\",\"expression\":\"Amounts.amount / 2\"}],\"enable\":true,\"created_at\":\"2026-07-26T13:52:37.610976817-03:00\",\"updated_at\":\"2026-07-26T13:52:37.610981147-03:00\",\"version\":1}",
+      "delay": {
+        "timeUnit": "MILLISECONDS",
+        "value": 100
+      }
+    },
+    "times": {
+      "unlimited": true
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/v1/ledger/config/103/401"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"config_id\":\"c78c282c-7afd-4b64-c3de-aa03e44e799f\",\"level\":\"tenant\",\"processing_code\":\"103\",\"org_id\":\"TN-77add76c-e395-446b-b306-1a0f9cb99a31\",\"description\":\"Estorno parcial\",\"scripts\":[{\"script_id\":103,\"flow\":\"regular\",\"description\":\"Estorno parcial - Cartão\",\"expression\":\"Amounts.amount * -1\"},{\"script_id\":103,\"flow\":\"migration\",\"description\":\"Estorno parcial - PIX\",\"expression\":\"Amounts.amount * -0.5\"}],\"enable\":true,\"created_at\":\"2026-07-26T13:52:37.610976817-03:00\",\"updated_at\":\"2026-07-26T13:52:37.610981147-03:00\",\"version\":1}",
+      "delay": {
+        "timeUnit": "MILLISECONDS",
+        "value": 100
+      }
+    },
+    "times": {
+      "unlimited": true
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/v1/ledger/config/104/401"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"config_id\":\"d89d393d-8bae-4c75-d4ef-bb14e55e80a0\",\"level\":\"tenant\",\"processing_code\":\"104\",\"org_id\":\"TN-77add76c-e395-446b-b306-1a0f9cb99a31\",\"description\":\"Transferência entre contas\",\"scripts\":[{\"script_id\":104,\"flow\":\"regular\",\"description\":\"Transferência - Débito\",\"expression\":\"Amounts.amount\"},{\"script_id\":104,\"flow\":\"migration\",\"description\":\"Transferência - Crédito\",\"expression\":\"Amounts.amount * -1\"}],\"enable\":true,\"created_at\":\"2026-07-26T13:52:37.610976817-03:00\",\"updated_at\":\"2026-07-26T13:52:37.610981147-03:00\",\"version\":1}",
+      "delay": {
+        "timeUnit": "MILLISECONDS",
+        "value": 100
+      }
+    },
+    "times": {
+      "unlimited": true
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/v1/ledger/config/105/401"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"config_id\":\"e90e404e-9cbf-4d86-e5f0-cc25f66e91b1\",\"level\":\"tenant\",\"processing_code\":\"105\",\"org_id\":\"TN-77add76c-e395-446b-b306-1a0f9cb99a31\",\"description\":\"Pagamento de boleto\",\"scripts\":[{\"script_id\":105,\"flow\":\"regular\",\"description\":\"Pagamento boleto - Cartão\",\"expression\":\"Amounts.amount + Fees.boleto\"},{\"script_id\":105,\"flow\":\"migration\",\"description\":\"Pagamento boleto - PIX\",\"expression\":\"Amounts.amount\"}],\"enable\":true,\"created_at\":\"2026-07-26T13:52:37.610976817-03:00\",\"updated_at\":\"2026-07-26T13:52:37.610981147-03:00\",\"version\":1}",
+      "delay": {
+        "timeUnit": "MILLISECONDS",
+        "value": 100
+      }
+    },
+    "times": {
+      "unlimited": true
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/v1/ledger/config/.*/.*"
+    },
+    "httpResponse": {
+      "statusCode": 404,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"message\":\"ledger config not found\"}"
+    },
+    "times": {
+      "unlimited": true
+    }
+  }
+]

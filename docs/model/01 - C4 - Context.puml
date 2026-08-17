@@ -1,0 +1,24 @@
+@startuml C4 - Context Diagram 
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v2.4.0
+!includeurl ICONURL/devicons/go.puml
+
+AddRelTag("async", $lineStyle = DashedLine())
+SHOW_PERSON_PORTRAIT()
+
+Person_Ext(bank, "Agentes Financeiros", "Cliente externo que irá customizar os roteiros contábeis ou consultar um determinado evento contábel")
+
+System(events, "Sistema de Eventos Contábeis", "Serviço responsável por gerenciar os eventos contábeis")
+System_Ext(transactions, "Sistema de transações financeiras", "Serviço responsável por gerenciar as transações financeiras")
+System_Ext(migrations, "Sistema de migração de Contas", "Serviço que gerencia a migração das contas externas para o contexto da empresa")
+System_Ext(datalake, "Sistema de Relatórios", "Serviço que gerencia os relatórios financeiros e contábeis")
+
+Rel_D(bank, events, "Customiza um roteiro contábel", "JSON")
+Rel_D(bank, events, "Consulta os lançamentos contábeis, ou efetuar um lançamento contábil avulso", "JSON")
+Rel_D(bank, datalake, "Consulta os relatórios financeiros e contábeis", "Bucket S3")
+Rel_R(datalake, events, "Consulta os lançamentos contábeis", "DMS-SQL")
+Rel_D(events, transactions, "Consulta os lançamentos financeiros", "JSON")
+Rel_D(events, migrations, "Consulta as contas migradas", "JSON")
+
+@enduml

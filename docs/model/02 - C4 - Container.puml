@@ -1,0 +1,46 @@
+@startuml C4 - Diagrama Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v2.4.0
+!includeurl ICONURL/devicons/go.puml
+
+AddRelTag("async", $lineStyle = DashedLine())
+SHOW_PERSON_PORTRAIT()
+
+Person_Ext(bank, "Agentes Financeiros", "Cliente externo que irá customizar os roteiros contábeis ou consultar um determinado evento contábel")
+System_Ext(transactions, "Sistema de Transações Financeiras", "Serviço responsável por gerenciar as transações financeiras")
+System_Ext(migrations, "Sistema de Migração de Contas", "Serviço que gerencia a migração das contas externas para o contexto da empresa")
+System_Ext(datalake, "Sistema de Relatórios", "Sistema que gerencia os relatórios financeiros e contábeis")
+
+System_Boundary(financial_accounting, "Sistema de Contabilidade"){
+    Container_Ext(scripts, "Serviço de Roteiros Contábeis", "Gerencia os roteiros contábeis customizados pelo cliente")
+    System_Boundary(events, "Serviço de Eventos Contábeis"){
+        Container(accounting_events, "Serviço Gerenciamento de Eventos Contábeis", "Golang", "Gerencia os lançamentos contábeis processados pela plataforma", $sprite = "go")
+        Container(accounting_transactions_worker, "Processador de Eventos Financeiros", "Golang", "Processa os eventos financeiros gerados pela plataforma", $sprite = "go")
+        Container(accounting_migrations_worker, "Processador de Eventos de Migração", "Golang", "Processa os eventos financeiros de migração gerados pela plataforma", $sprite = "go")
+
+        ContainerQueue(sqs_transactions, "Fila de Mensagens", "SQS", "Consome os eventos de transação financeira produzidos pela plataforma")
+        ContainerQueue(sqs_migragions, "Fila de Mensagens", "SQS", "Consome os eventos de transação financeira de migração produzidos pela plataforma")
+
+        ContainerDb(mySQL, "Banco de dados", "MySQL", "Armazena os dados dos Eventos contábeis")
+        ContainerQueue(sns_events, "Servidor de Mensagens", "SNS", "Notifica outros serviços sobre criação dos eventos contábeis")
+
+        Rel_U(accounting_transactions_worker, sqs_transactions, "Consome os eventos de transação financeira", "JSON")
+        Rel_U(accounting_migrations_worker, sqs_migragions, "Consome os eventos de transação financeira de migração", "JSON")
+
+        Rel_D(accounting_events, mySQL, "Persiste os eventos contábeis", "SQL")
+        Rel_D(accounting_events, sns_events, "Publica os eventos contábeis", "JSON")
+        Rel_D(accounting_transactions_worker, accounting_events, "Lança um evento contábil", "JSON")
+        Rel_D(accounting_migrations_worker, accounting_events, "Lança um evento contábil", "JSON")
+    }
+
+    Rel_R(accounting_events, scripts, "Recupera um roteiro contábil para processar o evento", "JSON")
+}
+
+Rel_D(bank, scripts, "Customiza um roteiro contábel", "JSON")
+Rel_D(bank, accounting_events, "Consulta os lançamentos contábeis, ou efetuar um lançamento contábil avulso", "JSON")
+Rel_D(bank, accounting_events, "Lança um evento contábil avulso", "JSON")
+Rel_U(datalake, mySQL, "Consome os eventos processados para gerar relatórios contábeis", "DMS/SQL", $tags = "async")
+Rel_U(sqs_transactions, transactions, "Subscribe tópico para processar eventos financeiros")
+Rel_U(sqs_migragions, migrations, "Subscribe tópico para processar eventos financeiros de migração")
+
+@enduml

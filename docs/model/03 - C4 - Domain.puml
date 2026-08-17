@@ -1,0 +1,49 @@
+@startuml 03 - C4 - Domain Diagram
+!include <C4/C4_Component>
+
+class Event{
+	- EventID: string
+	- CorrelationID: string
+	- OrgID: string
+	- EventTypeID: string
+	- TransactionID: int
+	- AuthorizationID: int
+	- ProgramID: int
+	- CustomerID: int
+	- AcountID: int
+	- DaysDue: int
+	- EventDate: date
+	- Description: string
+	- TransactionType: int
+	- ProcessID: int
+	- Producer: string
+	- ProcessingCode: string
+	- ProcessingDescription: string
+	- ClearingDate: date
+	- ChunkPart: int
+	- CreatedAt: datetime
+	- Entries: Entry[] 
+}
+
+class Entry{
+	- EventID : string
+	- EntryTypeID : int
+	- Amount: double
+	- DebitAccount: string
+	- CreditAccount: string
+	- DebitOrg: string
+	- CreditOrg: string
+	- DebitCost: string
+	- CreditCost: string
+	- CompanyCode: string
+	- CompanyType: string
+	- Description: string
+	- CreatedAt: datetime
+}
+
+
+
+
+Event  "1" *-- "1..*" Entry
+
+@enduml
