@@ -11,7 +11,7 @@ import (
 
 	"github.com/clodoaldomarques/core-sdk/pkg/logger"
 	"github.com/clodoaldomarques/core-sdk/pkg/opentelemetry"
-	"github.com/clodoaldomarques/ledger-events/config"
+	"github.com/clodoaldomarques/ledger-worker/config"
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/server"
 )
 
@@ -21,7 +21,7 @@ func main() {
 
 	s := server.New()
 	go func() {
-		c := config.New(config.WithAppPort(5001))
+		c := config.New()
 		err := s.Start(c.AppPort)
 		if err != http.ErrServerClosed {
 			logger.Fatal(ctx, err.Error(), logger.Fields{})
