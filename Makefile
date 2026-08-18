@@ -46,3 +46,10 @@ terraform:
 test:
 	go test ./... -coverprofile cover.out
 	go tool cover -html=cover.out
+
+send-event:
+	@echo "📤 Enviando evento para a fila 'balance-sqs-queue'..."
+	aws --endpoint-url=http://localhost:4566 sqs send-message \
+		--queue-url http://localhost:4566/000000000000/balance-sqs-queue \
+		--message-body file://scripts/docker/localstack/event.json
+	@echo "✅ Mensagem enviada!"

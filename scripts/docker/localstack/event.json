@@ -1,0 +1,10 @@
+{
+  "description": "Cash purchase",
+  "scripts": [
+    {
+      "script_id": 101,
+      "flow": "regular",
+      "expression": "Amount.amount"
+    }
+  ]
+}

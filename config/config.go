@@ -82,3 +82,15 @@ func (c Config) SecretAccessKey() string {
 func (c Config) BalanceQueue() string {
 	return c.BalanceQueueUrl
 }
+
+func (c Config) QueueURL() string {
+	return c.BalanceQueueUrl
+}
+
+func (c Config) DeadLetterQueueURL() string {
+	return c.BalanceQueueUrl
+}
+
+func (c Config) MaxReceiveCount() int {
+	return int(10)
+}

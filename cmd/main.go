@@ -11,19 +11,28 @@ import (
 
 	"github.com/clodoaldomarques/core-sdk/pkg/logger"
 	"github.com/clodoaldomarques/core-sdk/pkg/opentelemetry"
+	"github.com/clodoaldomarques/core-sdk/pkg/sqs"
 	"github.com/clodoaldomarques/ledger-worker/config"
+	"github.com/clodoaldomarques/ledger-worker/internal/infra/message"
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/server"
 )
 
 func main() {
 	ctx := context.Background()
 	opentelemetry.Start(ctx)
+	c := config.New()
 
 	s := server.New()
 	go func() {
-		c := config.New()
 		err := s.Start(c.AppPort)
 		if err != http.ErrServerClosed {
+			logger.Fatal(ctx, err.Error(), logger.Fields{})
+		}
+	}()
+
+	con := sqs.NewConsumer(ctx, c, message.Handler)
+	go func() {
+		if err := con.Start(); err != nil {
 			logger.Fatal(ctx, err.Error(), logger.Fields{})
 		}
 	}()
