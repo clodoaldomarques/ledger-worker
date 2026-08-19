@@ -2,10 +2,8 @@ package events
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/clodoaldomarques/ledger-worker/config"
@@ -24,14 +22,7 @@ func TestLedgerEventsApi_CreateEvent(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		req, err := io.ReadAll(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-		}
-
-		sr := string(req)
-
-		if !strings.Contains(sr, "error") {
+		if r.Header.Get("x-cid") != "error" {
 			w.WriteHeader(http.StatusCreated)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
@@ -77,7 +68,7 @@ func TestLedgerEventsApi_CreateEvent(t *testing.T) {
 			},
 			want: func(t *testing.T, e error) {
 				assert.NotNil(t, e)
-				assert.Equal(t, "ledger config not found", e.Error())
+				assert.Equal(t, "api error: status 400, body: {\"message\": \"bad request\"}", e.Error())
 			},
 		},
 	}

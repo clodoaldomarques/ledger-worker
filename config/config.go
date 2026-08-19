@@ -32,7 +32,7 @@ func New(options ...Option) *Config {
 			AwsAccessKeyID:     env.GetString("AWS_ACCESS_KEY_ID", ""),
 			AwsSecretAccessKey: env.GetString("AWS_SECRET_ACCESS_KEY", ""),
 			BalanceQueueUrl:    env.GetString("BALANCE_QUEUE", ""),
-			LedgerEventsApiUrl: env.GetString("LEDGER_CONFIG_API_URL", ""),
+			LedgerEventsApiUrl: env.GetString("LEDGER_EVENTS_API_URL", ""),
 		}
 	})
 

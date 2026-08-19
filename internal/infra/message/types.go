@@ -1,4 +1,4 @@
-package transaction
+package message
 
 type TransactionCreated struct {
 	AccountID             int64           `json:"account_id"`
