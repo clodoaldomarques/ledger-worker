@@ -1,10 +1,68 @@
 {
-  "description": "Cash purchase",
-  "scripts": [
+  "account_id": 100000,
+  "accounting_date": "2026-08-18",
+  "amount": [
     {
-      "script_id": 101,
-      "flow": "regular",
-      "expression": "Amount.amount"
+      "currency": "BRL",
+      "value": 1250.75,
+      "description": "TRANSACTION_AMOUNT"
     }
-  ]
+  ],
+  "authorization": {
+    "type": "VISA",
+    "id": 987654,
+    "tid": "A1B2C3D4E5",
+    "card_id": "40000012345",
+    "card_hash": "f7a3b8c9d0e1f2g3h4i5j6k7l8m9n0o1",
+    "authorization_code": "Y0IKQJ",
+    "retrieval_reference_number": "932614326272",
+    "principal_amount": 1250.75,
+    "correlated_authorization_id": 11443744043709851610,
+    "currency": "BRL"
+  },
+  "correlation_id": "3bd713ad-4ffd-93d5-9eaa-2c52f59582e0",
+  "event_date": "2026-08-18T14:30:00Z",
+  "event_datetime": "2026-08-18T14:30:00.000Z",
+  "id": 352525,
+  "program": {
+    "id": 12252,
+    "name": "Black Card",
+    "type": "CREDIT"
+  },
+  "transaction_type": {
+    "id": 100000,
+    "description": "COMPRA A VISTA",
+    "is_credit": false,
+    "statement_post": true
+  },
+  "authorization_tracking_id": "b7620539-eb50-46a1-aa2c-cc413cace8ab",
+  "customer_id": 258292,
+  "details": "{'internal_debit_account_id':'123', 'merchant':'Loja Exemplo'}",
+  "due_date": "2026-09-10",
+  "installment": null,
+  "interest_rate": null,
+  "number_of_installments": null,
+  "origin": null,
+  "payment_date": null,
+  "payment_datetime": null,
+  "processing_code": "PC_123",
+  "processing_description": "DEBIT PURCHASE",
+  "rates": [
+    {
+      "type": "settlement_conversion_rate",
+      "value": 5.25
+    }
+  ],
+  "reference_to_cardholder_exchange_rate": null,
+  "soft_descriptor": "Loja Exemplo *1234",
+  "statement_id": 955,
+  "tax": [
+    {
+      "type": "IOF",
+      "value": 6.25
+    }
+  ],
+  "transaction_group": "NATIONAL",
+  "user_category": "shopping",
+  "created_at": "2026-08-18T14:30:00.000Z"
 }
