@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-worker
+  labels:
+    com.job.service: ledger-worker
+    tier: golang
+spec:
+  selector: 
+    matchLabels:
+      com.job.service: ledger-worker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: 
+        com.job.service: ledger-worker
+        tier: golang
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: ledger-worker
+          image: clodoaldomarques/ledger-worker:latest
+          imagePullPolicy: "Always"
+          env:
+            # Variáveis para LocalStack (AWS)
+            - name: AWS_ADDRESS
+              value: "http://localstack:4566"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_ACCESS_KEY_ID 
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_SECRET_ACCESS_KEY 
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: BALANCE_QUEUE
+              value: http://localstack:4566/000000000000/balance-sqs-queue
+            - name: LEDGER_EVENTS_API_URL
+              value: http://ledger-events:5001
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "otel:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "ledger-worker"             
+          ports:
+            - name: ledger-worker
+              containerPort: 5002
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"

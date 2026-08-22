@@ -31,25 +31,30 @@ logs:
 
 terraform:
 	@if [ ! -d "scripts/terraform/.terraform" ]; then \
-		echo "▶️  Inicializando Terraform..."; \
-		terraform -chdir=scripts/terraform/ init; \
-	else \
-		echo "✅ Terraform já inicializado (pulando init)."; \
+		terraform -chdir=scripts/terraform/ init;\
 	fi
-	@echo "⏳ Aguardando LocalStack na porta 4566..."
-	@until nc -z localhost 4566; do echo "⏳ esperando..."; sleep 2; done
-	@echo "📋 Gerando plano..."
+	until nc -z 192.168.49.2 30002; do echo waiting for localstack; sleep 2; done;
 	terraform -chdir=scripts/terraform/ plan
-	@echo "🚀 Aplicando..."
 	terraform -chdir=scripts/terraform/ apply -auto-approve
 
 test:
 	go test ./... -coverprofile cover.out
 	go tool cover -html=cover.out
 
+
+apply: 
+	$(MAKE) terraform
+	kubectl apply -f scripts/k8s/
+
+destroy:
+	kubectl delete -f scripts/k8s/ --ignore-not-found
+	terraform -chdir=scripts/terraform/ destroy -auto-approve
+
+reload: destroy apply
+
 send-event:
 	@echo "📤 Enviando evento para a fila 'balance-sqs-queue'..."
-	aws --endpoint-url=http://localhost:4566 sqs send-message \
-		--queue-url http://localhost:4566/000000000000/balance-sqs-queue \
+	aws --endpoint-url=http://192.168.49.2:30002 sqs send-message \
+		--queue-url http://192.168.49.2:30002/000000000000/balance-sqs-queue \
 		--message-body file://scripts/docker/localstack/event.json
 	@echo "✅ Mensagem enviada!"

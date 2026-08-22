@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-worker
+  labels:
+    com.job.service: ledger-worker
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 5002
+      targetPort: 5002
+      nodePort: 31002
+  selector:
+    com.job.service: ledger-worker
+    tier: golang
