@@ -40,6 +40,8 @@ spec:
               value: "us-east-1"
             - name: BALANCE_QUEUE
               value: http://localstack:4566/000000000000/balance-sqs-queue
+            - name: BALANCE_QUEUE_DLQ
+              value: http://localstack:4566/000000000000/balance-sqs-dlq-queue              
             - name: LEDGER_EVENTS_API_URL
               value: http://ledger-events:5001
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

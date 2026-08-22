@@ -14,6 +14,7 @@ type Config struct {
 	AwsSecretAccessKey string
 	LedgerEventsApiUrl string
 	BalanceQueueUrl    string
+	BalanceQueueDLQUrl string
 }
 
 type Option func(*Config)
@@ -32,6 +33,7 @@ func New(options ...Option) *Config {
 			AwsAccessKeyID:     env.GetString("AWS_ACCESS_KEY_ID", ""),
 			AwsSecretAccessKey: env.GetString("AWS_SECRET_ACCESS_KEY", ""),
 			BalanceQueueUrl:    env.GetString("BALANCE_QUEUE", ""),
+			BalanceQueueDLQUrl: env.GetString("BALANCE_QUEUE_DLQ", ""),
 			LedgerEventsApiUrl: env.GetString("LEDGER_EVENTS_API_URL", ""),
 		}
 	})
@@ -79,16 +81,13 @@ func (c Config) AccessKeyID() string {
 func (c Config) SecretAccessKey() string {
 	return c.AwsSecretAccessKey
 }
-func (c Config) BalanceQueue() string {
-	return c.BalanceQueueUrl
-}
 
 func (c Config) QueueURL() string {
 	return c.BalanceQueueUrl
 }
 
 func (c Config) DeadLetterQueueURL() string {
-	return c.BalanceQueueUrl
+	return c.BalanceQueueDLQUrl
 }
 
 func (c Config) MaxReceiveCount() int {

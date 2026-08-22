@@ -17,12 +17,22 @@ func Handler(ctx context.Context, msg *sqs.Message) error {
 
 	e, err := buildLedgerEvent(msg)
 	if err != nil {
+		logger.Error(ctx, err.Error(), logger.Fields{
+			"MessageID": msg.MessageID,
+			"Body":      msg.Body,
+		})
 		return err
 	}
 
 	err = srv.CreateEvent(ctx, e)
 	if err != nil {
-		logger.Error(ctx, err.Error(), logger.Fields{})
+		logger.Error(ctx, err.Error(), logger.Fields{
+			"Cid":            e.Cid,
+			"OrgID":          e.OrgID,
+			"ProgramID":      e.ProgramID,
+			"AccountID":      e.AccountID,
+			"ProcessingCode": e.ProcessingCode,
+		})
 		return err
 	}
 
@@ -36,7 +46,8 @@ func buildLedgerEvent(msg *sqs.Message) (ledger.Event, error) {
 		return ledger.Event{}, err
 	}
 	return ledger.Event{
-		OrgID:          "TN-Test",
+		Producer:       "regular",
+		OrgID:          t.OrgID,
 		AccountID:      t.AccountID,
 		ProgramID:      t.Program.ID,
 		Cid:            t.CorrelationID,

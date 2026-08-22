@@ -1,4 +1,5 @@
 {
+  "org_id" : "TN-77add76c-e395-446b-b306-1a0f9cb99a31",
   "account_id": 100000,
   "accounting_date": "2026-08-18",
   "amount": [
@@ -45,7 +46,7 @@
   "origin": null,
   "payment_date": null,
   "payment_datetime": null,
-  "processing_code": "PC_123",
+  "processing_code": "101",
   "processing_description": "DEBIT PURCHASE",
   "rates": [
     {

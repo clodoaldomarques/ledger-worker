@@ -1,6 +1,7 @@
 package message
 
 type TransactionCreated struct {
+	OrgID                 string          `json:"org_id"`
 	AccountID             int64           `json:"account_id"`
 	AccountingDate        string          `json:"accounting_date"`
 	Amount                []Amount        `json:"amount"`
@@ -11,47 +12,47 @@ type TransactionCreated struct {
 	ID                    int64           `json:"id"`
 	Program               Program         `json:"program"`
 	TransactionType       TransactionType `json:"transaction_type"`
-	AuthorizationTracking *string         `json:"authorization_tracking_id,omitempty"`
-	CustomerID            *int64          `json:"customer_id,omitempty"`
-	Details               *string         `json:"details,omitempty"`
-	DueDate               *string         `json:"due_date,omitempty"`
-	Installment           *int64          `json:"installment,omitempty"`
-	InterestRate          *float64        `json:"interest_rate,omitempty"`
-	NumberOfInstallments  *int64          `json:"number_of_installments,omitempty"`
-	Origin                *string         `json:"origin,omitempty"`
-	PaymentDate           *string         `json:"payment_date,omitempty"`
-	PaymentDatetime       *string         `json:"payment_datetime,omitempty"`
-	ProcessingCode        *string         `json:"processing_code,omitempty"`
-	ProcessingDescription *string         `json:"processing_description,omitempty"`
-	Rates                 []Rate          `json:"rates,omitempty"`
-	RefToCardholderRate   *float64        `json:"reference_to_cardholder_exchange_rate,omitempty"`
-	SoftDescriptor        *string         `json:"soft_descriptor,omitempty"`
-	StatementID           *int64          `json:"statement_id,omitempty"`
-	Tax                   []Tax           `json:"tax,omitempty"`
-	TransactionGroup      *string         `json:"transaction_group,omitempty"`
-	UserCategory          *string         `json:"user_category,omitempty"`
-	CreatedAt             *string         `json:"created_at,omitempty"`
+	AuthorizationTracking *string         `json:"authorization_tracking_id"`
+	CustomerID            *int64          `json:"customer_id"`
+	Details               *string         `json:"details"`
+	DueDate               *string         `json:"due_date"`
+	Installment           *int64          `json:"installment"`
+	InterestRate          *float64        `json:"interest_rate"`
+	NumberOfInstallments  *int64          `json:"number_of_installments"`
+	Origin                *string         `json:"origin"`
+	PaymentDate           *string         `json:"payment_date"`
+	PaymentDatetime       *string         `json:"payment_datetime"`
+	ProcessingCode        *string         `json:"processing_code"`
+	ProcessingDescription *string         `json:"processing_description"`
+	Rates                 []Rate          `json:"rates"`
+	RefToCardholderRate   *float64        `json:"reference_to_cardholder_exchange_rate"`
+	SoftDescriptor        *string         `json:"soft_descriptor"`
+	StatementID           *int64          `json:"statement_id"`
+	Tax                   []Tax           `json:"tax"`
+	TransactionGroup      *string         `json:"transaction_group"`
+	UserCategory          *string         `json:"user_category"`
+	CreatedAt             *string         `json:"created_at"`
 }
 
 // Amount representa os detalhes do valor da transação.
 type Amount struct {
-	Currency    *string `json:"currency,omitempty"`
+	Currency    *string `json:"currency"`
 	Value       float64 `json:"value"`
-	Description *string `json:"description,omitempty"`
+	Description *string `json:"description"`
 }
 
 // Authorization representa o registro de autorização da transação.
 type Authorization struct {
-	Type                      *string  `json:"type,omitempty"`
-	ID                        *int64   `json:"id,omitempty"`
-	TID                       *string  `json:"tid,omitempty"`
-	CardID                    *string  `json:"card_id,omitempty"`
-	CardHash                  *string  `json:"card_hash,omitempty"`
-	AuthorizationCode         *string  `json:"authorization_code,omitempty"`
-	RetrievalReferenceNumber  *string  `json:"retrieval_reference_number,omitempty"`
-	PrincipalAmount           *float64 `json:"principal_amount,omitempty"`
-	CorrelatedAuthorizationID *int64   `json:"correlated_authorization_id,omitempty"`
-	Currency                  *string  `json:"currency,omitempty"`
+	Type                      *string  `json:"type"`
+	ID                        *int64   `json:"id"`
+	TID                       *string  `json:"tid"`
+	CardID                    *string  `json:"card_id"`
+	CardHash                  *string  `json:"card_hash"`
+	AuthorizationCode         *string  `json:"authorization_code"`
+	RetrievalReferenceNumber  *string  `json:"retrieval_reference_number"`
+	PrincipalAmount           *float64 `json:"principal_amount"`
+	CorrelatedAuthorizationID *int64   `json:"correlated_authorization_id"`
+	Currency                  *string  `json:"currency"`
 }
 
 // Program representa o programa da transação.
