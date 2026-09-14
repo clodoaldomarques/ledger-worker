@@ -1,0 +1,23 @@
+.git
+.gitignore
+*.md
+Dockerfile
+docker-compose*.yml
+.vscode
+.idea
+tmp/
+bin/
+dist/
+
+# Ignore CLI configuration files
+**/.terraform/*
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+
+# env file
+.env

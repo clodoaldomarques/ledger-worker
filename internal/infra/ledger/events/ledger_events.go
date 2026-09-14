@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/clodoaldomarques/core-sdk/pkg/logger"
+	"github.com/clodoaldomarques/core-sdk/pkg/tracer"
 	"github.com/clodoaldomarques/ledger-worker/config"
 	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
 	"github.com/sony/gobreaker"
@@ -45,16 +46,25 @@ func New(ctx context.Context) *LedgerEventsApi {
 }
 
 func (a *LedgerEventsApi) CreateEvent(ctx context.Context, e ledger.Event) error {
+	span, ctx := tracer.NewSpanFromContext(ctx, "LedgerEventsApi::CreateEvent", map[string]any{
+		"cid":        e.Cid,
+		"org_id":     e.OrgID,
+		"program_id": e.ProgramID,
+		"event_type": e,
+	})
+	defer span.End()
 	_, err := a.circuitBreaker.Execute(func() (interface{}, error) {
 		u := fmt.Sprintf("%s/v1/ledger/events", a.baseUrl)
 
 		b, err := json.Marshal(NewEventRequest(e))
 		if err != nil {
+			span.SetError(err)
 			return nil, fmt.Errorf("failed to marshal event: %w", err)
 		}
 
 		req, err := http.NewRequestWithContext(ctx, "POST", u, bytes.NewReader(b))
 		if err != nil {
+			span.SetError(err)
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
 
@@ -64,6 +74,7 @@ func (a *LedgerEventsApi) CreateEvent(ctx context.Context, e ledger.Event) error
 
 		resp, err := a.httpClient.Do(req)
 		if err != nil {
+			span.SetError(err)
 			return nil, fmt.Errorf("http request failed: %w", err)
 		}
 		defer resp.Body.Close()
@@ -71,6 +82,7 @@ func (a *LedgerEventsApi) CreateEvent(ctx context.Context, e ledger.Event) error
 		respBody, _ := io.ReadAll(resp.Body)
 
 		if resp.StatusCode != http.StatusCreated {
+			span.SetError(fmt.Errorf("api error: status %d, body: %s", resp.StatusCode, string(respBody)))
 			return nil, fmt.Errorf("api error: status %d, body: %s", resp.StatusCode, string(respBody))
 		}
 

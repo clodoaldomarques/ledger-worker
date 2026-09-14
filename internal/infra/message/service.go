@@ -6,18 +6,24 @@ import (
 
 	"github.com/clodoaldomarques/core-sdk/pkg/logger"
 	"github.com/clodoaldomarques/core-sdk/pkg/sqs"
+	"github.com/clodoaldomarques/core-sdk/pkg/tracer"
 	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/ledger/events"
 	"github.com/shopspring/decimal"
 )
 
 func Handler(ctx context.Context, msg *sqs.Message) error {
+	span, ctx := tracer.NewSpanFromContext(ctx, "Message::Handler", map[string]any{
+		"MessageID": msg.MessageID,
+		"Body":      msg.Body,
+	})
+	defer span.End()
 	api := events.New(ctx)
 	srv := ledger.New(api)
 
 	e, err := buildLedgerEvent(msg)
 	if err != nil {
-		logger.Error(ctx, err.Error(), logger.Fields{
+		span.AddEvent(err.Error(), map[string]any{
 			"MessageID": msg.MessageID,
 			"Body":      msg.Body,
 		})
@@ -26,6 +32,14 @@ func Handler(ctx context.Context, msg *sqs.Message) error {
 
 	err = srv.CreateEvent(ctx, e)
 	if err != nil {
+		span.AddEvent(err.Error(), map[string]any{
+			"Cid":            e.Cid,
+			"OrgID":          e.OrgID,
+			"ProgramID":      e.ProgramID,
+			"AccountID":      e.AccountID,
+			"ProcessingCode": e.ProcessingCode,
+		})
+		span.SetError(err)
 		logger.Error(ctx, err.Error(), logger.Fields{
 			"Cid":            e.Cid,
 			"OrgID":          e.OrgID,

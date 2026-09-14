@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/clodoaldomarques/core-sdk/pkg/tracer"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 type Service struct {
@@ -18,11 +17,18 @@ func New(a EventsAPI) *Service {
 }
 
 func (s Service) CreateEvent(ctx context.Context, e Event) error {
-	span, ctx := tracer.NewSpanFromContext(ctx, "Service::Handler", attribute.String("MessageID", e.Cid))
+	span, ctx := tracer.NewSpanFromContext(ctx, "Service::Handler", map[string]any{
+		"cid":             e.Cid,
+		"org_id":          e.OrgID,
+		"program_id":      e.ProgramID,
+		"account_id":      e.AccountID,
+		"processing_code": e.ProcessingCode,
+	})
+
 	defer span.End()
 
 	if err := s.api.CreateEvent(ctx, e); err != nil {
-		span.AddEvent(err.Error(), tracer.Attributes{
+		span.AddEvent(err.Error(), map[string]any{
 			"Cid":            e.Cid,
 			"OrgID":          e.OrgID,
 			"ProgramID":      e.ProgramID,
