@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/clodoaldomarques/core-sdk/pkg/logger"
-	"github.com/clodoaldomarques/core-sdk/pkg/tracer"
+	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
+	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 	"github.com/clodoaldomarques/ledger-worker/config"
 	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
 	"github.com/sony/gobreaker"

@@ -3,7 +3,7 @@ package ledger
 import (
 	"context"
 
-	"github.com/clodoaldomarques/core-sdk/pkg/tracer"
+	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 )
 
 type Service struct {

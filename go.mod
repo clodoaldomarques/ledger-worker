@@ -3,7 +3,7 @@ module github.com/clodoaldomarques/ledger-worker
 go 1.26.1
 
 require (
-	github.com/clodoaldomarques/core-sdk v0.5.16
+	github.com/clodoaldomarques/core-sdk v0.7.1
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
@@ -15,8 +15,8 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.0 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.33.4 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.20.4 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.33.5 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.5 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.3 // indirect
@@ -27,7 +27,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.38.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.50.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.51.0 // indirect
 	github.com/aws/smithy-go v1.28.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -43,12 +43,16 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
+	go.opentelemetry.io/contrib/bridges/otelslog v0.20.1 // indirect
 	go.opentelemetry.io/otel v1.46.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.22.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.46.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.46.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.46.0 // indirect
+	go.opentelemetry.io/otel/log v0.22.0 // indirect
 	go.opentelemetry.io/otel/metric v1.46.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.46.0 // indirect
+	go.opentelemetry.io/otel/sdk/log v0.22.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.46.0 // indirect
 	go.opentelemetry.io/otel/trace v1.46.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect

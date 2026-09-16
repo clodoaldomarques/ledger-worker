@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/clodoaldomarques/core-sdk/pkg/logger"
-	"github.com/clodoaldomarques/core-sdk/pkg/sqs"
-	"github.com/clodoaldomarques/core-sdk/pkg/tracer"
+	"github.com/clodoaldomarques/core-sdk/pkg/aws/sqs"
+	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
+	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/ledger/events"
 	"github.com/shopspring/decimal"
