@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/clodoaldomarques/core-sdk/pkg/otel/httpclient"
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 	"github.com/clodoaldomarques/ledger-worker/config"
@@ -40,7 +41,7 @@ func New(ctx context.Context) *LedgerEventsApi {
 
 	return &LedgerEventsApi{
 		baseUrl:        baseUrl,
-		httpClient:     &http.Client{},
+		httpClient:     httpclient.Client(),
 		circuitBreaker: cb,
 	}
 }
