@@ -7,6 +7,7 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/aws/sqs"
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
+	service "github.com/clodoaldomarques/ledger-worker/internal/application/ledger"
 	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/ledger/events"
 	"github.com/shopspring/decimal"
@@ -19,7 +20,7 @@ func Handler(ctx context.Context, msg *sqs.Message) error {
 	})
 	defer span.End()
 	api := events.New(ctx)
-	srv := ledger.New(api)
+	srv := service.New(api)
 
 	e, err := buildLedgerEvent(msg)
 	if err != nil {

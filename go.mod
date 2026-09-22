@@ -11,6 +11,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/sony/gobreaker v1.0.0
 	github.com/stretchr/testify v1.12.1
+	go.uber.org/mock v0.6.0
 )
 
 require (

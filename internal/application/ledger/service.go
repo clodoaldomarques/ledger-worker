@@ -4,19 +4,20 @@ import (
 	"context"
 
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
+	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
 )
 
 type Service struct {
-	api EventsAPI
+	api EventsProvider
 }
 
-func New(a EventsAPI) *Service {
+func New(a EventsProvider) *Service {
 	return &Service{
 		api: a,
 	}
 }
 
-func (s Service) CreateEvent(ctx context.Context, e Event) error {
+func (s Service) CreateEvent(ctx context.Context, e ledger.Event) error {
 	span, ctx := tracer.NewSpanFromContext(ctx, "Service::Handler", map[string]any{
 		"cid":             e.Cid,
 		"org_id":          e.OrgID,
