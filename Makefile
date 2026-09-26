@@ -37,13 +37,7 @@ terraform:
 	terraform -chdir=scripts/terraform/ plan
 	terraform -chdir=scripts/terraform/ apply -auto-approve
 
-test:
-	go test ./... -coverprofile cover.out
-	go tool cover -html=cover.out
-
-
-apply: 
-	$(MAKE) terraform
+apply: terraform
 	kubectl apply -f scripts/k8s/
 
 destroy:
@@ -58,3 +52,72 @@ send-event:
 		--queue-url http://192.168.49.2:30002/000000000000/balance-sqs-queue \
 		--message-body file://scripts/docker/localstack/event.json
 	@echo "✅ Mensagem enviada!"
+
+
+# =============================================================================
+# Testes
+# =============================================================================
+
+test:
+	go test ./... -coverprofile cover.out
+	go tool cover -html=cover.out
+
+# =============================================================================
+# Benchmark
+# =============================================================================
+
+# roda todos os benchmarks, uma vez, com alocação
+bench:
+	go test -bench=. -benchmem -run=^$$ ./...
+
+# roda com múltiplas amostras (bom para comparar com benchstat)
+bench-count:
+	go test -bench=. -benchmem -run=^$$ -count=10 ./...
+
+# roda só um benchmark específico (uso: make bench-one name=BenchmarkCreateEvent_Success)
+bench-one:
+	go test -bench=$(name) -benchmem -run=^$$ ./...
+
+# salva baseline para comparação futura
+bench-baseline:
+	go test -bench=. -benchmem -run=^$$ -count=10 ./... | tee baseline.txt
+
+# roda de novo depois de otimizar e compara com benchstat
+bench-compare:
+	go test -bench=. -benchmem -run=^$$ -count=10 ./... | tee after.txt
+	benchstat baseline.txt after.txt
+
+# detecta contenção sob concorrência
+bench-parallel:
+	go test -bench=Parallel -benchmem -run=^$$ -cpu=1,2,4,8 ./...
+
+# =============================================================================
+# Profiling
+# =============================================================================
+
+# CPU profile do caminho feliz
+profile-cpu:
+	go test -bench=BenchmarkCreateEvent_Success$$ -run=^$$ -cpuprofile=cpu.prof -benchtime=5s ./internal/application/ledger
+	go tool pprof -http=:8080 cpu.prof
+
+# memória: total alocado (acha pontos de alocação)
+profile-mem:
+	go test -bench=BenchmarkCreateEvent_Success$$ -run=^$$ -memprofile=mem.prof -benchtime=5s ./internal/application/ledger
+	go tool pprof -http=:8080 mem.prof
+
+# memória em uso (acha vazamento)
+profile-mem-inuse:
+	go tool pprof -inuse_space mem.prof
+
+# goroutine profile (útil se estiver rodando como serviço)
+profile-goroutine:
+	go tool pprof http://localhost:6060/debug/pprof/goroutine
+
+# trace de execução (investiga escalonamento, bloqueios)
+profile-trace:
+	go test -bench=BenchmarkCreateEvent_Parallel$$ -run=^$$ -trace=trace.out -benchtime=5s ./internal/application/ledger
+	go tool trace trace.out
+
+# limpa artefatos de profiling
+profile-clean:
+	rm -f cpu.prof mem.prof trace.out baseline.txt after.txt
