@@ -58,3 +58,21 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+          
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: ledger-worker
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: ledger-worker
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3

@@ -34,8 +34,9 @@ func (s Server) routes() {
 		RedactFields:    []string{"password", "token", "credit_card"},
 	}))
 
-	// health check
-	s.http.GET("/", HealthCheck)
+	// Health
+	s.http.GET("/health/live", s.Liveness)
+	s.http.GET("/health/ready", s.Readiness)
 }
 
 func (s Server) Start(port int) error {
@@ -46,10 +47,12 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.http.Shutdown(ctx)
 }
 
-func HealthCheck(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"data": "Server is up and running",
-	})
+func (s *Server) Liveness(c echo.Context) error {
+	return c.NoContent(http.StatusOK)
+}
+
+func (s *Server) Readiness(c echo.Context) error {
+	return c.NoContent(http.StatusOK)
 }
 
 type CustomValidator struct {
