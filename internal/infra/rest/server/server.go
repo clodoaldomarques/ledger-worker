@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
+
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/shared"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
@@ -26,12 +28,19 @@ func New() *Server {
 func (s Server) routes() {
 	s.http.Validator = &CustomValidator{validator: validator.New()}
 
+	// tracer interceptor
+	s.http.Use(tracer.Interceptor())
+
 	// logger interceptor
 	s.http.Use(logger.InterceptorWithConfig(logger.InterceptorConfig{
 		MaxBodySize:     5 * 1024,
 		LogRequestBody:  true,
 		LogResponseBody: false,
 		RedactFields:    []string{"password", "token", "credit_card"},
+		SkipPaths: []string{
+			"/health/live",
+			"/health/ready",
+		},
 	}))
 
 	// Health
