@@ -69,7 +69,7 @@ func (s *Server) Readiness(c echo.Context) error {
 	)
 	defer cancel()
 
-	if err := message.NewPublisher(ctx).Health(); err != nil {
+	if err := message.NewConsumer(ctx).Health(); err != nil {
 		return c.NoContent(http.StatusServiceUnavailable)
 	}
 

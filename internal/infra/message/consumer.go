@@ -28,6 +28,10 @@ func (con *Consumer) Start() error {
 	return con.c.Start()
 }
 
+func (con *Consumer) Health() error {
+	return con.c.Health()
+}
+
 func Handler(ctx context.Context, msg *sqs.Message) error {
 	span, ctx := tracer.NewSpanFromContext(ctx, "Message::Handler", map[string]any{
 		"MessageID": msg.MessageID,
