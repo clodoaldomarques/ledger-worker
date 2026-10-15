@@ -7,11 +7,26 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/aws/sqs"
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
+	"github.com/clodoaldomarques/ledger-worker/config"
 	service "github.com/clodoaldomarques/ledger-worker/internal/application/ledger"
 	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/ledger/events"
 	"github.com/shopspring/decimal"
 )
+
+type Consumer struct {
+	c *sqs.Consumer
+}
+
+func NewConsumer(ctx context.Context) *Consumer {
+	return &Consumer{
+		c: sqs.NewConsumer(ctx, config.New(), Handler),
+	}
+}
+
+func (con *Consumer) Start() error {
+	return con.c.Start()
+}
 
 func Handler(ctx context.Context, msg *sqs.Message) error {
 	span, ctx := tracer.NewSpanFromContext(ctx, "Message::Handler", map[string]any{

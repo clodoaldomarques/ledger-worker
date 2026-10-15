@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/clodoaldomarques/core-sdk/pkg/aws/sqs"
 	"github.com/clodoaldomarques/core-sdk/pkg/otel"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 	"github.com/clodoaldomarques/ledger-worker/config"
@@ -30,7 +29,7 @@ func main() {
 		}
 	}()
 
-	con := sqs.NewConsumer(ctx, c, message.Handler)
+	con := message.NewConsumer(ctx)
 	go func() {
 		if err := con.Start(); err != nil {
 			logger.Fatal(ctx, err.Error(), logger.Fields{})

@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 
+	"github.com/clodoaldomarques/ledger-worker/internal/infra/message"
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/shared"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
@@ -61,6 +63,16 @@ func (s *Server) Liveness(c echo.Context) error {
 }
 
 func (s *Server) Readiness(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(
+		c.Request().Context(),
+		500*time.Millisecond,
+	)
+	defer cancel()
+
+	if err := message.NewPublisher(ctx).Health(); err != nil {
+		return c.NoContent(http.StatusServiceUnavailable)
+	}
+
 	return c.NoContent(http.StatusOK)
 }
 
