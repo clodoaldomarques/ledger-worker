@@ -8,11 +8,13 @@ import (
 	ports "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/ports"
 )
 
+var _ ports.ProcessEventUseCase = (*Service)(nil)
+
 type Service struct {
-	api ports.EventsProvider
+	api ports.LedgerEventPublisher
 }
 
-func New(a ports.EventsProvider) *Service {
+func New(a ports.LedgerEventPublisher) *Service {
 	return &Service{
 		api: a,
 	}

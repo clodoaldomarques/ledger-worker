@@ -22,7 +22,7 @@ func TestService_CreateEvent(t *testing.T) {
 		{
 			name: "when create a event with success",
 			setup: func(ctrl *gomock.Controller) *Service {
-				a := ports.NewMockEventsProvider(ctrl)
+				a := ports.NewMockLedgerEventPublisher(ctrl)
 				a.EXPECT().CreateEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				return New(a)
 			},
@@ -36,7 +36,7 @@ func TestService_CreateEvent(t *testing.T) {
 		{
 			name: "when create a event with error",
 			setup: func(ctrl *gomock.Controller) *Service {
-				a := ports.NewMockEventsProvider(ctrl)
+				a := ports.NewMockLedgerEventPublisher(ctrl)
 				a.EXPECT().CreateEvent(gomock.Any(), gomock.Any()).Return(errors.New("wrong event")).Times(1)
 				return New(a)
 			},

@@ -1,4 +1,4 @@
-package events
+package ledgerapi
 
 import (
 	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"

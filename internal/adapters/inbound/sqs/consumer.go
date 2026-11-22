@@ -10,25 +10,28 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 	"github.com/clodoaldomarques/ledger-worker/config"
-	events "github.com/clodoaldomarques/ledger-worker/internal/adapters/outbound/ledger-api"
+	ledgerapi "github.com/clodoaldomarques/ledger-worker/internal/adapters/outbound/ledger-api"
 	service "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/application"
 	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/ports"
 	"github.com/shopspring/decimal"
 )
 
+var _ ports.HealthChecker = (*Consumer)(nil)
+
 type Consumer struct {
-	c   *sqs.Consumer
-	api *events.LedgerEventsApi
-	srv *service.Service
+	c       *sqs.Consumer
+	api     *ledgerapi.LedgerEventsApi
+	useCase ports.ProcessEventUseCase
 }
 
 // NewConsumer cria o cliente da API uma única vez, de modo que o circuit breaker
 // compartilhe estado entre mensagens e possa ser fechado no graceful shutdown.
 func NewConsumer(ctx context.Context) *Consumer {
-	api := events.New(ctx)
+	api := ledgerapi.New(ctx, config.New().LedgerEventsApiUrl)
 	con := &Consumer{
-		api: api,
-		srv: service.New(api),
+		api:     api,
+		useCase: service.New(api),
 	}
 	con.c = sqs.NewConsumer(ctx, config.New(), con.handle)
 	return con
@@ -62,7 +65,7 @@ func (con *Consumer) handle(ctx context.Context, msg *sqs.Message) error {
 		return err
 	}
 
-	if err := con.srv.CreateEvent(ctx, e); err != nil {
+	if err := con.useCase.CreateEvent(ctx, e); err != nil {
 		span.AddEvent(err.Error(), map[string]any{
 			"Cid":            e.Cid,
 			"OrgID":          e.OrgID,

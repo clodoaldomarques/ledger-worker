@@ -1,4 +1,4 @@
-package events
+package ledgerapi
 
 import (
 	"bytes"
@@ -13,8 +13,8 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/httpclient"
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
-	"github.com/clodoaldomarques/ledger-worker/config"
 	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/ports"
 	"github.com/sony/gobreaker"
 )
 
@@ -23,6 +23,8 @@ const (
 	defaultRetryBaseDelay = 100 * time.Millisecond
 	defaultRetryMaxDelay  = time.Second
 )
+
+var _ ports.LedgerEventPublisher = (*LedgerEventsApi)(nil)
 
 type LedgerEventsApi struct {
 	baseUrl        string
@@ -33,8 +35,7 @@ type LedgerEventsApi struct {
 	retryMaxDelay  time.Duration
 }
 
-func New(ctx context.Context) *LedgerEventsApi {
-	baseUrl := config.New().LedgerEventsApiUrl
+func New(ctx context.Context, baseUrl string) *LedgerEventsApi {
 	cb := gobreaker.NewCircuitBreaker(gobreaker.Settings{
 		Name:    "LedgerEventsAPI",
 		Timeout: 15 * time.Second,
