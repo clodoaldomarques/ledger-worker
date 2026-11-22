@@ -5,7 +5,6 @@ go 1.26.1
 require (
 	github.com/clodoaldomarques/core-sdk v0.8.8
 	github.com/go-playground/validator v9.31.0+incompatible
-	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.16.0
 	github.com/shopspring/decimal v1.5.0
