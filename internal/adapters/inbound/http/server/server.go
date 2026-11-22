@@ -9,22 +9,18 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/shared"
+	"github.com/clodoaldomarques/ledger-worker/internal/adapters/inbound/http/shared"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/ports"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 )
 
-// HealthChecker é implementado pelo consumidor SQS usado na readiness.
-type HealthChecker interface {
-	Health() error
-}
-
 type Server struct {
 	http   *echo.Echo
-	health HealthChecker
+	health ports.HealthChecker
 }
 
-func New(h HealthChecker) *Server {
+func New(h ports.HealthChecker) *Server {
 	s := Server{
 		http:   echo.New(),
 		health: h,

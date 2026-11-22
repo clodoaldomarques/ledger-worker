@@ -14,8 +14,8 @@
 
 ## Correção adicional descoberta durante a implementação
 
-- [x] Compartilhar o circuit breaker entre mensagens: `events.New(ctx)` saiu do handler e passou a ser chamado uma vez em `message.NewConsumer`.
-- [x] Evitar criar um consumidor SQS por requisição de readiness injetando o consumidor no servidor (spec 002).
+- [x] Compartilhar o circuit breaker entre mensagens: `ledgerapi.New(ctx, baseURL)` é chamado uma vez em `cmd/main.go` e o publisher é injetado no consumer (spec 005).
+- [x] Evitar criar um consumidor SQS por requisição de readiness injetando `ports.HealthChecker` no servidor (spec 002/005).
 
 ## Validação da spec
 

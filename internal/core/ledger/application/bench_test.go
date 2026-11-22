@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	ports "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/ports"
 	"go.uber.org/mock/gomock"
 )
 
@@ -12,12 +13,12 @@ import (
 // Helpers
 // =============================================================================
 
-// newBenchService monta o Service com um mock de EventsProvider que sempre
+// newBenchService monta o Service com um mock de LedgerEventPublisher que sempre
 // responde com sucesso.
 func newBenchService(b *testing.B) *Service {
 	ctrl := gomock.NewController(b)
 
-	a := NewMockEventsProvider(ctrl)
+	a := ports.NewMockLedgerEventPublisher(ctrl)
 	a.EXPECT().
 		CreateEvent(gomock.Any(), gomock.Any()).
 		Return(nil).
@@ -30,7 +31,7 @@ func newBenchService(b *testing.B) *Service {
 func newBenchServiceErr(b *testing.B) *Service {
 	ctrl := gomock.NewController(b)
 
-	a := NewMockEventsProvider(ctrl)
+	a := ports.NewMockLedgerEventPublisher(ctrl)
 	a.EXPECT().
 		CreateEvent(gomock.Any(), gomock.Any()).
 		Return(errors.New("wrong event")).

@@ -1,4 +1,4 @@
-package message
+package sqs
 
 import "encoding/json"
 

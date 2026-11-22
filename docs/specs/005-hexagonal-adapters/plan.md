@@ -4,7 +4,7 @@
 
 **Entrada**: [spec.md](spec.md) deste diretório, specs `001`-`003` de `docs/specs/` e a estrutura atual deste repo.
 
-**Nota**: este plano descreve trabalho **a executar** neste repo. `[x]` só deve ser usado após a implementação real. Todo o conteúdo necessário está aqui e nos arquivos vizinhos deste diretório.
+**Nota**: este plano descreve o trabalho **executado** neste repo; o progresso real está marcado em `tasks.md`. Todo o conteúdo necessário está aqui e nos arquivos vizinhos deste diretório. A Fase 4 (decorators/divisão de portas/correções de bugs) permanece diferida e fora dos critérios de sucesso.
 
 ## Resumo
 
@@ -115,7 +115,7 @@ scripts/check-architecture.sh            # guarda de imports
 5. **Fase 4 — Opcional (fora do SC)**: decorators de tracing, divisão de portas, correções de bugs conhecidos.
 6. **Fase 5 — Fechamento**: documentação das specs `001`-`003`, verificações finais.
 
-Cada fase DEVE terminar com build e testes verdes. Rollback por commit de fase; nunca misturar fases no mesmo commit.
+Cada fase terminou com build e testes verdes. Rollback por commit de fase; as fases 0, 1, 2, 3 e 5 estão registradas em commits separados (`git log --oneline`).
 
 ## Verificação
 
@@ -135,6 +135,8 @@ go mod tidy
 # rastreabilidade do nome antigo
 grep -R 'EventsProvider' --include='*.go' --include='*.md' . || true
 ```
+
+Resultado: comandos verdes, com `go mod tidy` removendo `github.com/golang/mock`. As únicas ocorrências de `EventsProvider` permanecem em texto histórico das próprias specs 001 e 005; nenhuma referência em código, mocks, README ou constitution.
 
 ## Dependências e Ordem de Execução
 

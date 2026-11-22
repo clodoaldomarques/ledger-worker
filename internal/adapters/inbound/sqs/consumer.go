@@ -1,4 +1,4 @@
-package message
+package sqs
 
 import (
 	"context"
@@ -6,47 +6,57 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/clodoaldomarques/core-sdk/pkg/aws/sqs"
+	coresqs "github.com/clodoaldomarques/core-sdk/pkg/aws/sqs"
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
-	"github.com/clodoaldomarques/ledger-worker/config"
-	service "github.com/clodoaldomarques/ledger-worker/internal/application/ledger"
-	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/ledger/events"
+	domain "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/ports"
 	"github.com/shopspring/decimal"
 )
 
-type Consumer struct {
-	c   *sqs.Consumer
-	api *events.LedgerEventsApi
-	srv *service.Service
+// Client é a dependência de transporte injetada pela raiz de composição.
+type Client interface {
+	Start() error
+	Health() error
 }
 
-// NewConsumer cria o cliente da API uma única vez, de modo que o circuit breaker
-// compartilhe estado entre mensagens e possa ser fechado no graceful shutdown.
-func NewConsumer(ctx context.Context) *Consumer {
-	api := events.New(ctx)
-	con := &Consumer{
-		api: api,
-		srv: service.New(api),
+// Closer representa o adaptador de saída cujo ciclo de vida é encerrado pela raiz.
+type Closer interface {
+	Close()
+}
+
+var _ ports.HealthChecker = (*Consumer)(nil)
+
+type Consumer struct {
+	client  Client
+	closer  Closer
+	useCase ports.ProcessEventUseCase
+}
+
+func NewConsumer(client Client, useCase ports.ProcessEventUseCase, closer Closer) *Consumer {
+	return &Consumer{
+		client:  client,
+		closer:  closer,
+		useCase: useCase,
 	}
-	con.c = sqs.NewConsumer(ctx, config.New(), con.handle)
-	return con
 }
 
 func (con *Consumer) Start() error {
-	return con.c.Start()
+	return con.client.Start()
 }
 
 func (con *Consumer) Health() error {
-	return con.c.Health()
+	return con.client.Health()
 }
 
 func (con *Consumer) Close() {
-	con.api.Close()
+	if con.closer != nil {
+		con.closer.Close()
+	}
 }
 
-func (con *Consumer) handle(ctx context.Context, msg *sqs.Message) error {
+// Handle é o handler entregue ao cliente SQS na raiz de composição.
+func (con *Consumer) Handle(ctx context.Context, msg *coresqs.Message) error {
 	span, ctx := tracer.NewSpanFromContext(ctx, "Message::Handler", map[string]any{
 		"MessageID": msg.MessageID,
 		"Body":      msg.Body,
@@ -62,7 +72,7 @@ func (con *Consumer) handle(ctx context.Context, msg *sqs.Message) error {
 		return err
 	}
 
-	if err := con.srv.CreateEvent(ctx, e); err != nil {
+	if err := con.useCase.CreateEvent(ctx, e); err != nil {
 		span.AddEvent(err.Error(), map[string]any{
 			"Cid":            e.Cid,
 			"OrgID":          e.OrgID,
@@ -84,26 +94,26 @@ func (con *Consumer) handle(ctx context.Context, msg *sqs.Message) error {
 	return nil
 }
 
-func buildLedgerEvent(msg *sqs.Message) (ledger.Event, error) {
+func buildLedgerEvent(msg *coresqs.Message) (domain.Event, error) {
 	var t TransactionCreated
 	if err := json.Unmarshal([]byte(msg.Body), &t); err != nil {
-		return ledger.Event{}, fmt.Errorf("%w: invalid JSON: %v", ErrInvalidMessage, err)
+		return domain.Event{}, fmt.Errorf("%w: invalid JSON: %v", ErrInvalidMessage, err)
 	}
 
 	if t.ProcessingCode == nil || strings.TrimSpace(*t.ProcessingCode) == "" {
-		return ledger.Event{}, fmt.Errorf("%w: processing_code is required", ErrInvalidMessage)
+		return domain.Event{}, fmt.Errorf("%w: processing_code is required", ErrInvalidMessage)
 	}
 
 	amounts, err := buildAmounts(t.Amount)
 	if err != nil {
-		return ledger.Event{}, err
+		return domain.Event{}, err
 	}
 	fees, err := buildFees(t.Tax)
 	if err != nil {
-		return ledger.Event{}, err
+		return domain.Event{}, err
 	}
 
-	return ledger.Event{
+	return domain.Event{
 		Producer:       "regular",
 		OrgID:          t.OrgID,
 		AccountID:      t.AccountID,

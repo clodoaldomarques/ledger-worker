@@ -1,4 +1,4 @@
-package events
+package ledgerapi
 
 import (
 	"context"
@@ -6,9 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/clodoaldomarques/ledger-worker/config"
-	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
-	"github.com/golang/mock/gomock"
+	domain "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -31,41 +29,21 @@ func TestLedgerEventsApi_CreateEvent(t *testing.T) {
 	}))
 	defer server.Close()
 
-	type args struct {
-		event ledger.Event
-	}
 	tests := []struct {
 		name  string
-		setup func(ctrl *gomock.Controller) *LedgerEventsApi
-		args  func() args
-		want  func(t *testing.T, e error)
+		event domain.Event
+		want  func(t *testing.T, err error)
 	}{
 		{
-			name: "success - create ledger events",
-			setup: func(ctrl *gomock.Controller) *LedgerEventsApi {
-				config.New(config.WithLedgerEventsApiUrl(server.URL))
-				return New(context.Background())
-			},
-			args: func() args {
-				return args{
-					event: fakeEvent(false),
-				}
-			},
+			name:  "success - create ledger events",
+			event: fakeEvent(false),
 			want: func(t *testing.T, e error) {
 				assert.Nil(t, e)
 			},
 		},
 		{
-			name: "error - create ledger events",
-			setup: func(ctrl *gomock.Controller) *LedgerEventsApi {
-				config.New(config.WithLedgerEventsApiUrl(server.URL))
-				return New(context.Background())
-			},
-			args: func() args {
-				return args{
-					event: fakeEvent(true),
-				}
-			},
+			name:  "error - create ledger events",
+			event: fakeEvent(true),
 			want: func(t *testing.T, e error) {
 				assert.NotNil(t, e)
 				assert.Equal(t, "api error: status 400, body: {\"message\": \"bad request\"}", e.Error())
@@ -74,20 +52,20 @@ func TestLedgerEventsApi_CreateEvent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			api := tt.setup(ctrl)
-			err := api.CreateEvent(context.Background(), tt.args().event)
+			api := New(context.Background(), server.URL)
+			err := api.CreateEvent(context.Background(), tt.event)
 			tt.want(t, err)
+			api.Close()
 		})
 	}
 }
 
-func fakeEvent(e bool) ledger.Event {
+func fakeEvent(e bool) domain.Event {
 	cid := uuid.NewString()
 	if e {
 		cid = "error"
 	}
-	return ledger.Event{
+	return domain.Event{
 		Cid:            cid,
 		OrgID:          "TN-Teste",
 		ProgramID:      123,

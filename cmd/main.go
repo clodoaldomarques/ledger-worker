@@ -9,11 +9,14 @@ import (
 	"syscall"
 	"time"
 
+	coresqs "github.com/clodoaldomarques/core-sdk/pkg/aws/sqs"
 	"github.com/clodoaldomarques/core-sdk/pkg/otel"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 	"github.com/clodoaldomarques/ledger-worker/config"
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/message"
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/server"
+	"github.com/clodoaldomarques/ledger-worker/internal/adapters/inbound/http/server"
+	sqsadapter "github.com/clodoaldomarques/ledger-worker/internal/adapters/inbound/sqs"
+	ledgerapi "github.com/clodoaldomarques/ledger-worker/internal/adapters/outbound/ledger-api"
+	application "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/application"
 )
 
 func main() {
@@ -21,7 +24,17 @@ func main() {
 	otel.Start(ctx)
 	c := config.New()
 
-	con := message.NewConsumer(ctx)
+	// Composition root: cada adaptador é criado uma única vez e injetado nas portas.
+	publisher := ledgerapi.New(ctx, c.LedgerEventsApiUrl)
+	useCase := application.New(publisher)
+
+	// O handler captura con, preenchido logo abaixo; nenhuma mensagem é
+	// processada antes de con.Start().
+	var con *sqsadapter.Consumer
+	client := coresqs.NewConsumer(ctx, c, func(ctx context.Context, msg *coresqs.Message) error {
+		return con.Handle(ctx, msg)
+	})
+	con = sqsadapter.NewConsumer(client, useCase, publisher)
 	s := server.New(con)
 
 	go func() {

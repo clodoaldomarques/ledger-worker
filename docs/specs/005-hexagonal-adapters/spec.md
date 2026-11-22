@@ -6,17 +6,17 @@
 
 **Repo**: `github.com/clodoaldomarques/ledger-worker`
 
-**Status**: Proposta — especificação **prescritiva** (estado desejado), ainda não implementada
+**Status**: Implementada na branch `005-hexagonal-adapters` — especificação **prescritiva** convertida no estado atual do código
 
 **Entrada**: `docs/specs/` (specs `001`-`003`), `AGENTS.md` equivalente e engenharia reversa deste repo.
 
-> **Escopo**: esta é a spec 005 aplicada a `ledger-worker`. Os IDs `US1`-`US5`, `FR-001`..`FR-014` e `SC-001`..`SC-007` são idênticos nos repos da família para rastreabilidade; o conteúdo abaixo descreve **somente este repo**. Nenhuma mudança de comportamento externo está autorizada.
+> **Escopo**: esta é a spec 005 aplicada a `ledger-worker`. Os IDs `US1`-`US5`, `FR-001`..`FR-014` e `SC-001`..`SC-007` são idênticos nos repos da família para rastreabilidade; o conteúdo abaixo descreve **somente este repo**. Nenhuma mudança de comportamento externo foi autorizada. Referências a `EventsProvider`, `internal/domain`, `internal/application` e `internal/infra` no corpo desta spec são históricas (estado anterior); os nomes atuais estão em [Verificação executada](#verificação-executada) e em `tasks.md`.
 
 ## Contexto e Motivação
 
-`ledger-worker` já possui composition root em `cmd/main.go` e uma porta de saída (`EventsProvider`, em `internal/application/ledger/interfaces.go`), mas a topologia ainda é `domain`/`application`/`infra`: o consumer SQS vive em `infra/message`, o cliente da API ledger em `infra/ledger/events`, e o servidor de health em `infra/rest/server`. O consumer depende de `*service.Service` em vez de uma porta de entrada, e `server.New(con)` recebe o adapter concreto.
+Antes da spec 005, `ledger-worker` já possuía composition root em `cmd/main.go` e uma porta de saída (`EventsProvider`, em `internal/application/ledger/interfaces.go`), mas a topologia ainda era `domain`/`application`/`infra`: o consumer SQS vivia em `infra/message`, o cliente da API ledger em `infra/ledger/events`, e o servidor de health em `infra/rest/server`. O consumer dependia de `*service.Service` em vez de uma porta de entrada, e `server.New(con)` recebia o adapter concreto.
 
-Isso dificulta trocar o cliente HTTP da API ledger ou o consumer SQS por um fake, e duplicar a convenção dos demais repos da família. A migração é estrutural: mover para `internal/core/ledger/{domain,application,ports}` e `internal/adapters/{inbound,outbound}`, explicitar `ProcessEventUseCase` e `HealthChecker`, e ajustar a raiz de composição que já existe. O circuit breaker, retries, contrato de eventos e endpoint de health permanecem intactos.
+Isso dificultava trocar o cliente HTTP da API ledger ou o consumer SQS por um fake, e duplicar a convenção dos demais repos da família. A migração foi estrutural: mover para `internal/core/ledger/{domain,application,ports}` e `internal/adapters/{inbound,outbound}`, explicitar `ProcessEventUseCase` e `HealthChecker`, e refinar a raiz de composição que já existia. O circuit breaker, retries, contrato de eventos e endpoint de health permaneceram intactos.
 
 ## Cenários de Usuário e Testes *(obrigatório)*
 
@@ -152,6 +152,15 @@ Como mantenedor, quero que nenhuma porta ou dependência sem uso sobreviva à mi
 - **SC-005**: Nenhuma diferença no contrato de processamento de eventos e nas respostas de health.
 - **SC-006**: `go mod tidy` sem dependências órfãs e sem ocorrências de `gringotts`/`ProgramAPI`/`Griphook`/`ollama` neste repo.
 - **SC-007**: `make arch-check` falha quando um import proibido é introduzido artificialmente e passa no estado final.
+
+## Verificação executada
+
+- Layout final: `internal/core/ledger/{domain,application,ports}` e `internal/adapters/{inbound/sqs,inbound/http/{server,shared},outbound/ledger-api}`.
+- Portas: `ProcessEventUseCase` (entrada) e `LedgerEventPublisher`/`HealthChecker` (saída), com mocks gerados em `internal/core/ledger/ports/mock.go`.
+- Composition root: `cmd/main.go` cria uma instância de config, publisher, caso de uso, cliente SQS, consumer e servidor; `con.Close()` encerra o publisher e `s.Shutdown(ctx)` encerra o HTTP.
+- Clientes AWS do `core-sdk` e da AWS SDK v2 são reutilizáveis entre goroutines (o consumidor compartilha um único cliente entre os 5 workers); a raiz cria uma instância por processo.
+- `go generate ./internal/core/ledger/...`, `go mod tidy`, `go test ./...`, `go build ./...`, `go vet ./...` e `make arch-check` passam; a guarda falha com arquivo e linha quando um import proibido é injetado.
+- Testes adicionais: fake de `LedgerEventPublisher` exercitando o caso de uso, fake de `ProcessEventUseCase` no adaptador SQS e fake de `HealthChecker` no adaptador HTTP.
 
 ## Suposições
 

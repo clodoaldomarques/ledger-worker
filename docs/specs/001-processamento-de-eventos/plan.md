@@ -14,13 +14,13 @@
 | Área | Decisão | Local |
 |---|---|---|
 | Consumo | 5 workers, long polling 20 s, visibility 30 s, lote de 10 (padrões do core-sdk) | `core-sdk/pkg/aws/sqs/consumer.go` |
-| Ciclo de vida | `LedgerEventsApi` e circuit breaker criados em `NewConsumer`, fechados em `Close()` | `internal/infra/message/consumer.go`, `cmd/main.go` |
-| Validação | `ErrInvalidMessage` para JSON inválido e campos obrigatórios ausentes | `internal/infra/message/errors.go` |
+| Ciclo de vida | `LedgerEventsApi` e circuit breaker criados na raiz e injetados; fechados por `Consumer.Close()` | `cmd/main.go`, `internal/adapters/inbound/sqs/consumer.go` |
+| Validação | `ErrInvalidMessage` para JSON inválido e campos obrigatórios ausentes | `internal/adapters/inbound/sqs/errors.go` |
 | Precisão | `json.Number` + `decimal.NewFromString`, sem conversão por `float64` | `types.go`, `consumer.go` |
-| Domínio | `Event` sem methods, apenas dados | `internal/domain/ledger/event.go` |
-| Orquestração | `Service.CreateEvent` adiciona tracing e delega ao provider | `internal/application/ledger/service.go` |
-| Abstração | `EventsProvider` com mock gerado por `go:generate` | `internal/application/ledger/interfaces.go` |
-| Integração | POST com breaker compartilhado, headers de tenant/cid/idempotência | `internal/infra/ledger/events/ledger_events.go` |
+| Domínio | `Event` sem methods, apenas dados | `internal/core/ledger/domain/event.go` |
+| Orquestração | `Service.CreateEvent` implementa `ProcessEventUseCase`, adiciona tracing e delega ao publisher | `internal/core/ledger/application/service.go` |
+| Abstração | `LedgerEventPublisher` com mock gerado por `go:generate` | `internal/core/ledger/ports/outbound.go`, `mock.go` |
+| Integração | POST com breaker compartilhado, headers de tenant/cid/idempotência | `internal/adapters/outbound/ledger-api/ledger_events.go` |
 | Retry | 3 tentativas, 100 ms base, teto 1 s, jitter 0,5–1,5, somente 429/5xx/rede | `ledger_events.go` |
 | DLQ | Movimento manual pelo core-sdk quando `ApproximateReceiveCount >= 10` | `core-sdk/pkg/aws/sqs/consumer.go` |
 
@@ -29,7 +29,7 @@
 ```text
 SQS balance-sqs-queue
   → sqs.Consumer (core-sdk, 5 workers)
-  → Consumer.handle
+  → Consumer.Handle
       → tracer.NewSpanFromContext("Message::Handler")
       → buildLedgerEvent (valida → TransactionCreated → ledger.Event)
       → Service.CreateEvent
@@ -74,9 +74,9 @@ Número de tentativas, delays e limites do circuit breaker são constantes no c�
 
 ## Verificação
 
-- `go test ./internal/infra/message` — conversão, precisão e validação.
-- `go test ./internal/infra/ledger/events` — headers, retry, breaker e idempotência.
-- `go test ./internal/application/ledger` — serviço e mocks.
+- `go test ./internal/adapters/inbound/sqs` — conversão, precisão, validação e uso da porta de entrada.
+- `go test ./internal/adapters/outbound/ledger-api` — headers, retry, breaker e idempotência.
+- `go test ./internal/core/ledger/application` — serviço, mocks e fake da porta de saída.
 - `make bench-one name=BenchmarkCreateEvent_Success` — benchmark do serviço.
 
 ## Riscos e dívida técnica
@@ -91,7 +91,7 @@ Número de tentativas, delays e limites do circuit breaker são constantes no c�
 
 | Requisito | Evidência |
 |---|---|
-| RF-01, RF-09 | `internal/infra/message/consumer.go` + core-sdk |
+| RF-01, RF-09 | `internal/adapters/inbound/sqs/consumer.go` + core-sdk (cliente criado em `cmd/main.go`) |
 | RF-02, RF-03 | `buildLedgerEvent`, `parseDecimal`, `ErrInvalidMessage` |
-| RF-04 a RF-08, RF-11 | `internal/infra/ledger/events/ledger_events.go` |
-| RF-10 | `message.Consumer.handle`, `application.Service`, `LedgerEventsApi` |
+| RF-04 a RF-08, RF-11 | `internal/adapters/outbound/ledger-api/ledger_events.go` |
+| RF-10 | `sqs.Consumer.Handle`, `application.Service`, `LedgerEventsApi` |

@@ -1,10 +1,10 @@
 # Constitution — ledger-worker
 
-> Princípios extraídos da implementação atual (commit `5794727`). Servem para julgar mudanças futuras e manter as specs coerentes.
+> Princípios extraídos da implementação atual e revisados pela spec 005 em 2026-11-22. Servem para julgar mudanças futuras e manter as specs coerentes. A topologia atual está em [`platform.md`](platform.md).
 
-## I. Separação entre domínio, aplicação e infraestrutura
+## I. Regra de dependência por portas (hexagonal)
 
-`internal/domain/ledger` contém apenas o modelo `Event`. Regras de orquestração ficam em `internal/application/ledger`; adaptadores SQS/HTTP em `internal/infra`. O serviço de aplicação depende da abstração `EventsProvider`, nunca de `LedgerEventsApi`.
+`internal/core/ledger/domain` contém apenas o modelo `Event`. A orquestração fica em `internal/core/ledger/application`; as portas em `internal/core/ledger/ports` (`ProcessEventUseCase`, `LedgerEventPublisher`, `HealthChecker`). Adaptadores em `internal/adapters/inbound/**` (SQS e HTTP) e `internal/adapters/outbound/ledger-api` dependem do core — nunca o contrário. `cmd/main.go` é a única raiz de composição e injeta cada adaptador uma vez. O serviço de aplicação depende de `LedgerEventPublisher`, nunca de `LedgerEventsApi`. `make arch-check` aplica a guarda.
 
 ## II. Aritmética decimal para valores financeiros
 
