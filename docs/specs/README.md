@@ -21,5 +21,8 @@ Como são specs de software já implementado, o status é `Implementado (reverse
 | [001](001-processamento-de-eventos/) | Processamento de eventos SQS → Ledger Events API | Implementado, com limitações conhecidas |
 | [002](002-api-de-health/) | API de health (liveness/readiness) | Implementado |
 | [003](003-configuracao-e-infraestrutura/) | Configuração, infraestrutura local e deploy | Implementado, com divergências de endpoint |
+| [005](005-hexagonal-adapters/) | Migração para arquitetura hexagonal (bundle local com os IDs da família) | Proposta, prescritiva — não implementada |
+
+A spec 005 é a única prescritiva: descreve o estado desejado, não o código atual.
 
 Princípios que atravessam as três capacidades: [`constitution.md`](constitution.md).
