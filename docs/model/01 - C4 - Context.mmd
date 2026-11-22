@@ -1,0 +1,15 @@
+%% Convertido de: 01 - C4 - Context.puml
+%% Setas mantêm o sentido original; a dica de layout (Rel_U/Rel_D/Rel_R) foi omitida.
+flowchart TB
+    bank["Agentes Financeiros<br/>Cliente externo que irá customizar os roteiros contábeis ou consultar um determinado evento contábel"]
+    events["Sistema de Eventos Contábeis<br/>Serviço responsável por gerenciar os eventos contábeis"]
+    transactions["Sistema de transações financeiras<br/>Serviço responsável por gerenciar as transações financeiras"]
+    migrations["Sistema de migração de Contas<br/>Serviço que gerencia a migração das contas externas para o contexto da empresa"]
+    datalake["Sistema de Relatórios<br/>Serviço que gerencia os relatórios financeiros e contábeis"]
+
+    bank -->|"Customiza um roteiro contábel (JSON)"| events
+    bank -->|"Consulta os lançamentos contábeis, ou efetuar um lançamento contábil avulso (JSON)"| events
+    bank -->|"Consulta os relatórios financeiros e contábeis (Bucket S3)"| datalake
+    datalake -.->|"Consulta os lançamentos contábeis (DMS-SQL, async)"| events
+    events -->|"Consulta os lançamentos financeiros (JSON)"| transactions
+    events -->|"Consulta as contas migradas (JSON)"| migrations

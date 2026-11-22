@@ -1,0 +1,44 @@
+%% Convertido de: 03 - C4 - Domain.puml
+%% O arquivo PlantUML usa notação de classes, embora o nome diga C4.
+classDiagram
+    class Event {
+        -string EventID
+        -string CorrelationID
+        -string OrgID
+        -string EventTypeID
+        -int TransactionID
+        -int AuthorizationID
+        -int ProgramID
+        -int CustomerID
+        -int AcountID
+        -int DaysDue
+        -date EventDate
+        -string Description
+        -int TransactionType
+        -int ProcessID
+        -string Producer
+        -string ProcessingCode
+        -string ProcessingDescription
+        -date ClearingDate
+        -int ChunkPart
+        -datetime CreatedAt
+        -Entry[] Entries
+    }
+
+    class Entry {
+        -string EventID
+        -int EntryTypeID
+        -double Amount
+        -string DebitAccount
+        -string CreditAccount
+        -string DebitOrg
+        -string CreditOrg
+        -string DebitCost
+        -string CreditCost
+        -string CompanyCode
+        -string CompanyType
+        -string Description
+        -datetime CreatedAt
+    }
+
+    Event "1" *-- "1..*" Entry
