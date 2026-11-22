@@ -8,7 +8,8 @@
 
 ## Wiring
 - `cmd/main.go` starts an Echo server (only `/health/live` and `/health/ready`) and the core-sdk SQS consumer; SIGINT/SIGTERM triggers a 25s graceful shutdown.
-- Message path: `internal/infra/message.Handler` → `buildLedgerEvent` → `internal/application/ledger.Service.CreateEvent` → `internal/infra/ledger/events.LedgerEventsApi.CreateEvent` → `POST {LEDGER_EVENTS_API_URL}/v1/ledger/events`. The circuit breaker trips after >5 consecutive failures and stays open 15s.
+- Message path: `message.Consumer.handle` → `buildLedgerEvent` → `application/ledger.Service.CreateEvent` → `infra/ledger/events.LedgerEventsApi.CreateEvent` → `POST {LEDGER_EVENTS_API_URL}/v1/ledger/events`.
+- The API client and circuit breaker are created once in `message.NewConsumer`, shared across messages and closed on shutdown; breaker trips after >5 failures (15s), with 3 retries on `429`/`5xx`/network errors and `Idempotency-Key` sent as the correlation id.
 - `internal/domain/ledger` holds only the `Event` model; generated mocks live in `internal/application/ledger/mock.go`.
 
 ## Config and Make
@@ -18,6 +19,6 @@
 
 ## Local infra and mocks
 - `make up` = docker compose + Terraform. LocalStack is published on `localhost:4566` (matches `.env`), but Terraform and the `make terraform` readiness wait target minikube `192.168.67.2:30002`, while `make send-event` still hardcodes the older `192.168.49.2:30002`. Update all three together.
-- mockserver (`:1080`) expectations only define `GET /v1/ledger/config/...`; the worker POSTs `/v1/ledger/events`, so an end-to-end `make send-event` will 404 until an expectation is added.
+- mockserver (`:1080`) now defines `POST /v1/ledger/events` → 201 besides `GET /v1/ledger/config/...`; the remaining local blocker is the stale endpoint hardcoded in `make send-event`.
 - Regenerate mocks with `go generate ./internal/application/ledger` using `mockgen` v0.6.x from `go.uber.org/mock`; generated code imports `go.uber.org/mock/gomock`, while `internal/infra/ledger/events/ledger_events_test.go` still imports legacy `github.com/golang/mock/gomock`. Don't copy that import.
-- `buildLedgerEvent` dereferences `ProcessingCode` and amount `Description` pointers without nil checks; malformed or missing fields panic.
+- `buildLedgerEvent` validates `ProcessingCode` and amount `Description` and parses values via `json.Number` + `decimal.NewFromString`; malformed messages return `ErrInvalidMessage` instead of panicking.

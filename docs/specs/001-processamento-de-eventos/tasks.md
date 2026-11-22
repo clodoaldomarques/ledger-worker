@@ -2,24 +2,34 @@
 
 **Legenda:** `[x]` verificado no código; `[ ]` lacuna ou trabalho pendente.
 
+## Lacunas originais — corrigidas
+
+- [x] Validar `processing_code` e `amount[].description` antes de desreferenciá-los, retornando `ErrInvalidMessage` em vez de pânico.
+- [x] Evitar perda de precisão: `json.Number` + `decimal.NewFromString` substituíram `float64`.
+- [x] Chamar `LedgerEventsApi.Close()` no graceful shutdown.
+- [x] Definir política de idempotência: header `Idempotency-Key` com o `correlation_id`.
+- [x] Definir retry/backoff: 3 tentativas para `429`/`5xx`/erro de rede, com backoff exponencial e jitter.
+- [x] Adicionar teste de `buildLedgerEvent`, cobrindo conversão, precisão e entradas inválidas.
+- [x] Adicionar expectation de `POST /v1/ledger/events` no mockserver.
+
+## Correção adicional descoberta durante a implementação
+
+- [x] Compartilhar o circuit breaker entre mensagens: `events.New(ctx)` saiu do handler e passou a ser chamado uma vez em `message.NewConsumer`.
+- [x] Evitar criar um consumidor SQS por requisição de readiness injetando o consumidor no servidor (spec 002).
+
 ## Validação da spec
 
-- [x] Confirmar que `message.NewConsumer` passa `config.New()` e `Handler` ao core-sdk.
-- [x] Confirmar o mapeamento de `correlation_id`, `org_id`, `program.id` e `account_id`.
-- [x] Confirmar `Producer = "regular"` e o uso de `decimal.Decimal` em `Amounts`/`Fees`.
-- [x] Confirmar os headers `x-cid`, `x-tenant` e `Content-Type`.
-- [x] Confirmar que somente `201` é tratado como sucesso.
-- [x] Confirmar `ReadyToTrip: ConsecutiveFailures > 5` e `Timeout: 15s`.
-- [x] Confirmar que falha do handler não deleta a mensagem e que a DLQ usa `ApproximateReceiveCount >= 10`.
-- [x] Confirmar os três spans OTel e o log estruturado em caso de erro.
-- [x] Executar `go test ./...` sem serviços externos.
+- [x] `go test ./...` passa sem Docker, LocalStack ou mockserver.
+- [x] `go vet ./...` passa.
+- [x] Teste confirma que `400` não é retentado.
+- [x] Teste confirma que `5xx` é retentado até `201`.
+- [x] Teste confirma que o breaker abre após mais de cinco execuções falhas e bloqueia a próxima.
+- [x] Teste confirma `x-cid`, `x-tenant` e `Idempotency-Key`.
+- [x] `expectations.json` é um JSON válido.
 
-## Lacunas conhecidas
+## Lacunas restantes
 
-- [ ] Validar campos obrigatórios antes de desreferenciar `ProcessingCode` e `amount[].description`, substituindo pânico por erro de mensagem inválida.
-- [ ] Evitar perda de precisão: ler valores decimais como string ou `json.Number` em vez de `float64`.
-- [ ] Chamar `LedgerEventsApi.Close()` no graceful shutdown.
-- [ ] Definir política de idempotência para redelivery (não existe hoje).
-- [ ] Definir retry/backoff para a API downstream, hoje limitado a visibility timeout + DLQ.
-- [ ] Adicionar teste de `buildLedgerEvent`, que atualmente não tem cobertura direta.
-- [ ] Adicionar expectation de `POST /v1/ledger/events` no mockserver para permitir teste ponta a ponta (ver spec 003).
+- [ ] Deduplicação depende da API downstream; considerar dedupe local com Redis se a API não garantir idempotência.
+- [ ] Tornar tentativas/delays do retry configuráveis por ambiente.
+- [ ] Adicionar métricas para retry, circuit breaker e mensagens inválidas.
+- [ ] Reduzir o atributo de span `event_type` para campos selecionados em vez da struct inteira.

@@ -1,5 +1,7 @@
 package message
 
+import "encoding/json"
+
 type TransactionCreated struct {
 	OrgID                 string          `json:"org_id"`
 	AccountID             int64           `json:"account_id"`
@@ -36,9 +38,9 @@ type TransactionCreated struct {
 
 // Amount representa os detalhes do valor da transação.
 type Amount struct {
-	Currency    *string `json:"currency"`
-	Value       float64 `json:"value"`
-	Description *string `json:"description"`
+	Currency    *string     `json:"currency"`
+	Value       json.Number `json:"value"`
+	Description *string     `json:"description"`
 }
 
 // Authorization representa o registro de autorização da transação.
@@ -78,6 +80,6 @@ type Rate struct {
 
 // Tax representa os impostos aplicados à transação.
 type Tax struct {
-	Type  string  `json:"type"` // "IOF", "DAILY_IOF" ou "INTEREST"
-	Value float64 `json:"value"`
+	Type  string      `json:"type"` // "IOF", "DAILY_IOF" ou "INTEREST"
+	Value json.Number `json:"value"`
 }

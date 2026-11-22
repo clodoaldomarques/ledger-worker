@@ -233,7 +233,7 @@ The circuit transitions after consecutive failures and temporarily prevents addi
              Ledger Events API
 ```
 
-The current configuration trips the circuit after more than five consecutive failures and keeps it open for 15 seconds.
+The circuit breaker is created once at startup and shared by all messages. It trips after more than five consecutive failures and stays open for 15 seconds. Calls to the Ledger Events API retry up to three times on `429`, `5xx` or network errors (exponential backoff with jitter), and send `Idempotency-Key` with the correlation id so the API can deduplicate redeliveries.
 
 ## Asynchronous Processing
 
@@ -451,7 +451,7 @@ The project provides a Make target for sending an example event to the SQS queue
 make send-event
 ```
 
-The payload comes from `scripts/docker/localstack/event.json`. Note that the target still points at `192.168.49.2:30002` (see the endpoint mismatch note above), and the local mockserver expectations define only `GET /v1/ledger/config/...`, not the worker's `POST /v1/ledger/events`. Add a matching expectation before expecting a successful end-to-end run.
+The payload comes from `scripts/docker/localstack/event.json`. The mockserver already returns `201` for `POST /v1/ledger/events`, but the target still points at `192.168.49.2:30002` (see the endpoint mismatch note above), so the endpoints must be aligned before relying on an end-to-end local run.
 
 ## Technology Stack
 

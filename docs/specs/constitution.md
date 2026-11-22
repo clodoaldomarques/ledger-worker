@@ -8,7 +8,7 @@
 
 ## II. Aritmética decimal para valores financeiros
 
-`Amounts` e `Fees` usam `shopspring/decimal`. Não substituir por `float64` no domínio. Observação: a conversão atual usa `decimal.NewFromFloat` a partir de um `float64` do JSON, então a imprecisão da entrada já chega ao decimal (ver spec 001).
+`Amounts` e `Fees` usam `shopspring/decimal`, convertidos a partir de `json.Number` com `decimal.NewFromString`. Não reintroduzir `float64` no caminho entre o JSON e o domínio (ver spec 001).
 
 ## III. Observabilidade propagada
 

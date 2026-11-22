@@ -15,8 +15,8 @@
 |---|---|---|
 | Rotas | Somente health; sem grupo de rotas de negócio | `internal/infra/rest/server/server.go` |
 | Códigos | `NoContent(http.StatusOK)` no sucesso; `NoContent(http.StatusServiceUnavailable)` na falha | `server.go` |
-| Checagem SQS | `GetQueueAttributes` com atributo `QueueArn`, via core-sdk | `core-sdk/pkg/aws/sqs/consumer.go` |
-| Timeout | `context.WithTimeout` de 500 ms por chamada de readiness | `server.go` |
+| Checagem SQS | `HealthChecker` injetado: `message.Consumer` usa `GetQueueAttributes(QueueArn)` via core-sdk | `server.go`, `consumer.go`, core-sdk |
+| Timeout | `context.WithTimeout` de 500 ms + `select` entre resultado e `ctx.Done()` | `server.go` |
 | Interceptadores | `tracer.Interceptor()` e `logger.Interceptor()` registrados globalmente | `server.go` |
 | Validação | `CustomValidator` + `shared.EntityRequest`, sem uso efetivo hoje | `server.go`, `rest/shared` |
 | Shutdown | `echo.Echo.Shutdown(ctx)` com 25 s | `cmd/main.go` |
@@ -27,7 +27,7 @@
 GET /health/live  → interceptadores → Liveness  → 200
 GET /health/ready → interceptadores → Readiness
                       → ctx com 500 ms
-                      → message.NewConsumer(ctx).Health()
+                      → healthChecker.Health()
                       → GetQueueAttributes(QueueArn)
                       → 200 (ok) | 503 (erro/timeout)
 ```
@@ -37,7 +37,7 @@ GET /health/ready → interceptadores → Readiness
 | Variável | Uso |
 |---|---|
 | `APP_PORT` | Porta do Echo; padrão `5002`. |
-| `BALANCE_QUEUE` | URL usada pelo consumidor criado na readiness. |
+| `BALANCE_QUEUE` | URL usada pelo consumidor injetado no servidor. |
 | `AWS_ADDRESS`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Cliente SQS usado na readiness. |
 
 ## Verificação
@@ -48,8 +48,8 @@ GET /health/ready → interceptadores → Readiness
 
 ## Riscos e dívida técnica
 
-1. Criação de consumidor AWS por requisição de readiness.
-2. Timeout de 500 ms possivelmente insuficiente.
+1. Timeout de 500 ms possivelmente insuficiente.
+2. Goroutine de Health pode ficar pendurada se a chamada AWS não retornar.
 3. Liveness independente do estado real do consumidor SQS.
 4. Código de validação sem uso efetivo.
 

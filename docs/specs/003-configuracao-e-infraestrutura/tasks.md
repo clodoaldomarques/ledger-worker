@@ -12,13 +12,12 @@
 - [x] Confirmar recursos e endpoints do Terraform.
 - [x] Confirmar Deployment, Service e ConfigMap em `scripts/k8s/`.
 - [x] Confirmar as três origens divergentes do endpoint do LocalStack.
-- [x] Confirmar que o mockserver não cobre `POST /v1/ledger/events`.
+- [x] Confirmar que o mockserver cobre `POST /v1/ledger/events` com resposta `201`.
 - [x] Executar `go test ./...` sem serviços externos.
 
 ## Lacunas conhecidas
 
 - [ ] Unificar o endpoint do LocalStack em `.env`, Compose, Terraform, `make terraform` e `make send-event`.
-- [ ] Adicionar expectation de `POST /v1/ledger/events` em `expectations.json`.
 - [ ] Criar `.env.example` com as variáveis documentadas.
 - [ ] Separar geração de cobertura da abertura do HTML em `make test` (ou criar alvo específico para CI).
 - [ ] Preencher ou remover `scripts/k8s/configmap.yaml`.

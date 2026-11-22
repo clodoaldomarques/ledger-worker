@@ -64,11 +64,10 @@ Qualquer mudança de endpoint precisa atualizar as linhas aplicáveis dessa tabe
 ## Riscos e dívida técnica
 
 1. Três endpoints diferentes para o mesmo LocalStack.
-2. Expectativa ausente para `POST /v1/ledger/events` no mockserver.
-3. `.env` sem exemplo versionado.
-4. `make test` depende de navegador para exibir cobertura.
-5. ConfigMap vazio e `OTEL_SERVICE_NAME` divergente entre local e Kubernetes.
-6. Ausência de CI e verificações automáticas de lint/format.
+2. `.env` sem exemplo versionado.
+3. `make test` depende de navegador para exibir cobertura.
+4. ConfigMap vazio e `OTEL_SERVICE_NAME` divergente entre local e Kubernetes.
+5. Ausência de CI e verificações automáticas de lint/format.
 
 ## Cobertura dos requisitos
 

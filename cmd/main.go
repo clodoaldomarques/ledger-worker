@@ -21,7 +21,9 @@ func main() {
 	otel.Start(ctx)
 	c := config.New()
 
-	s := server.New()
+	con := message.NewConsumer(ctx)
+	s := server.New(con)
+
 	go func() {
 		err := s.Start(c.AppPort)
 		if err != http.ErrServerClosed {
@@ -29,7 +31,6 @@ func main() {
 		}
 	}()
 
-	con := message.NewConsumer(ctx)
 	go func() {
 		if err := con.Start(); err != nil {
 			logger.Fatal(ctx, err.Error(), logger.Fields{})
@@ -50,10 +51,11 @@ func main() {
 		fmt.Println("Servidor HTTP finalizado com sucesso")
 	}
 
+	con.Close()
+
 	if err := otel.Shutdown(ctx); err != nil {
 		fmt.Printf("erro no shutdown do opentelemetry: %v\n", err)
 	}
 
 	fmt.Println("Graceful shutdown concluído")
-
 }

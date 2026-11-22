@@ -66,7 +66,7 @@ O healthcheck do coletor OTLP escuta em `13133`. O pipeline de traces usa `batch
 
 ## Expectativas do mockserver
 
-`expectations.json` define apenas `GET /v1/ledger/config/{101..105}/401` e um fallback `404` para `/v1/ledger/config/.*/.*`. O worker chama `POST /v1/ledger/events` (spec 001), para o qual não há expectation.
+`expectations.json` define `POST /v1/ledger/events` retornando `201`, `GET /v1/ledger/config/{101..105}/401` e um fallback `404` para `/v1/ledger/config/.*/.*`. Assim, o chamado feito pelo worker (spec 001) já tem resposta local.
 
 ## Cenários de uso
 
@@ -81,7 +81,7 @@ O healthcheck do coletor OTLP escuta em `13133`. O pipeline de traces usa `batch
 **Given** o ambiente local no ar  
 **When** `make send-event` é executado  
 **Then** o corpo de `scripts/docker/localstack/event.json` é publicado via AWS CLI em `balance-sqs-queue`.  
-**And** o processamento ponta a ponta depende do alinhamento dos endpoints e de uma expectation para `POST /v1/ledger/events`.
+**And** o processamento ponta a ponta ainda depende do alinhamento dos endpoints do LocalStack.
 
 ### US3 — Publicar e deployar
 
@@ -112,7 +112,6 @@ O healthcheck do coletor OTLP escuta em `13133`. O pipeline de traces usa `batch
 | Item | Situação atual |
 |---|---|
 | Endpoint LocalStack | `.env`/Compose usam `localhost:4566`; Terraform e `make terraform` usam `192.168.67.2:30002`; `make send-event` usa `192.168.49.2:30002`. |
-| Mockserver | Não há expectation para `POST /v1/ledger/events`; evento de teste local retorna `404`. |
 | `.env` | Gitignored, sem exemplo no repositório. |
 | `make test` | Abre `cover.out` no navegador via `go tool cover -html`; inadequado para automação. |
 | `make profile-goroutine` | Assume pprof em `localhost:6060`, mas a aplicação não expõe `net/http/pprof`. |

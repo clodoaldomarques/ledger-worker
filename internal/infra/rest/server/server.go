@@ -9,19 +9,25 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/message"
 	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/shared"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 )
 
-type Server struct {
-	http *echo.Echo
+// HealthChecker é implementado pelo consumidor SQS usado na readiness.
+type HealthChecker interface {
+	Health() error
 }
 
-func New() *Server {
+type Server struct {
+	http   *echo.Echo
+	health HealthChecker
+}
+
+func New(h HealthChecker) *Server {
 	s := Server{
-		http: echo.New(),
+		http:   echo.New(),
+		health: h,
 	}
 	s.routes()
 	return &s
@@ -60,7 +66,17 @@ func (s *Server) Readiness(c echo.Context) error {
 	)
 	defer cancel()
 
-	if err := message.NewConsumer(ctx).Health(); err != nil {
+	done := make(chan error, 1)
+	go func() {
+		done <- s.health.Health()
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			return c.NoContent(http.StatusServiceUnavailable)
+		}
+	case <-ctx.Done():
 		return c.NoContent(http.StatusServiceUnavailable)
 	}
 

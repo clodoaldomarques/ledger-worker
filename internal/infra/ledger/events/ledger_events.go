@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net/http"
 	"time"
 
@@ -17,10 +18,19 @@ import (
 	"github.com/sony/gobreaker"
 )
 
+const (
+	defaultRetryAttempts  = 3
+	defaultRetryBaseDelay = 100 * time.Millisecond
+	defaultRetryMaxDelay  = time.Second
+)
+
 type LedgerEventsApi struct {
 	baseUrl        string
 	httpClient     *http.Client
 	circuitBreaker *gobreaker.CircuitBreaker
+	retryAttempts  int
+	retryBaseDelay time.Duration
+	retryMaxDelay  time.Duration
 }
 
 func New(ctx context.Context) *LedgerEventsApi {
@@ -43,6 +53,9 @@ func New(ctx context.Context) *LedgerEventsApi {
 		baseUrl:        baseUrl,
 		httpClient:     httpclient.Client(),
 		circuitBreaker: cb,
+		retryAttempts:  defaultRetryAttempts,
+		retryBaseDelay: defaultRetryBaseDelay,
+		retryMaxDelay:  defaultRetryMaxDelay,
 	}
 }
 
@@ -54,6 +67,7 @@ func (a *LedgerEventsApi) CreateEvent(ctx context.Context, e ledger.Event) error
 		"event_type": e,
 	})
 	defer span.End()
+
 	_, err := a.circuitBreaker.Execute(func() (interface{}, error) {
 		u := fmt.Sprintf("%s/v1/ledger/events", a.baseUrl)
 
@@ -63,36 +77,98 @@ func (a *LedgerEventsApi) CreateEvent(ctx context.Context, e ledger.Event) error
 			return nil, fmt.Errorf("failed to marshal event: %w", err)
 		}
 
-		req, err := http.NewRequestWithContext(ctx, "POST", u, bytes.NewReader(b))
-		if err != nil {
-			span.SetError(err)
-			return nil, fmt.Errorf("failed to create request: %w", err)
+		attempts := a.retryAttempts
+		if attempts < 1 {
+			attempts = 1
 		}
 
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("x-cid", e.Cid)
-		req.Header.Set("x-tenant", e.OrgID)
+		var lastErr error
+		for attempt := 1; attempt <= attempts; attempt++ {
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(b))
+			if err != nil {
+				span.SetError(err)
+				return nil, fmt.Errorf("failed to create request: %w", err)
+			}
 
-		resp, err := a.httpClient.Do(req)
-		if err != nil {
-			span.SetError(err)
-			return nil, fmt.Errorf("http request failed: %w", err)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("x-cid", e.Cid)
+			req.Header.Set("x-tenant", e.OrgID)
+			req.Header.Set("Idempotency-Key", e.Cid)
+
+			resp, err := a.httpClient.Do(req)
+			if err != nil {
+				lastErr = fmt.Errorf("http request failed: %w", err)
+			} else {
+				respBody, readErr := io.ReadAll(resp.Body)
+				_ = resp.Body.Close()
+				if readErr != nil {
+					lastErr = fmt.Errorf("failed to read response: %w", readErr)
+				} else if resp.StatusCode == http.StatusCreated {
+					return nil, nil
+				} else {
+					apiErr := fmt.Errorf("api error: status %d, body: %s", resp.StatusCode, string(respBody))
+					if !isRetryable(resp.StatusCode) {
+						span.SetError(apiErr)
+						return nil, apiErr
+					}
+					lastErr = apiErr
+				}
+			}
+
+			if attempt == attempts {
+				break
+			}
+
+			delay := retryDelay(a.retryBaseDelay, a.retryMaxDelay, attempt)
+			span.AddEvent("retrying downstream call", map[string]any{
+				"attempt":  attempt + 1,
+				"delay_ms": delay.Milliseconds(),
+				"error":    lastErr.Error(),
+			})
+			if err := wait(ctx, delay); err != nil {
+				span.SetError(err)
+				return nil, err
+			}
 		}
-		defer resp.Body.Close()
 
-		respBody, _ := io.ReadAll(resp.Body)
-
-		if resp.StatusCode != http.StatusCreated {
-			span.SetError(fmt.Errorf("api error: status %d, body: %s", resp.StatusCode, string(respBody)))
-			return nil, fmt.Errorf("api error: status %d, body: %s", resp.StatusCode, string(respBody))
-		}
-
-		return nil, nil
+		span.SetError(lastErr)
+		return nil, lastErr
 	})
 
+	if err != nil {
+		span.SetError(err)
+	}
 	return err
 }
 
 func (a *LedgerEventsApi) Close() {
 	a.httpClient.CloseIdleConnections()
+}
+
+func isRetryable(status int) bool {
+	return status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
+}
+
+func retryDelay(base, max time.Duration, attempt int) time.Duration {
+	delay := base * time.Duration(1<<(attempt-1))
+	if delay > max {
+		delay = max
+	}
+	delay = time.Duration(float64(delay) * (0.5 + rand.Float64()))
+	if delay > max {
+		delay = max
+	}
+	return delay
+}
+
+func wait(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }

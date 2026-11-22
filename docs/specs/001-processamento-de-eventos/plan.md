@@ -1,24 +1,27 @@
 # Plano técnico — Spec 001
 
-> Este plano documenta a solução **já implementada**. Não é um plano de trabalho futuro.
+> Este plano documenta a solução **implementada**, incluindo as correções das lacunas originais.
 
 ## Contexto técnico
 
 - Go `1.26.1` em `go.mod`; a imagem Docker compila com Go `1.27.1`.
 - `core-sdk v0.8.8` fornece consumidor SQS, cliente HTTP instrumentado, OTel e logger.
 - `gobreaker v1.0.0` protege a integração HTTP; `shopspring/decimal v1.5.0` representa valores.
-- Entrada: `cmd/main.go` inicia OTel, servidor HTTP e consumidor; o shutdown usa contexto de 25 s.
+- `math/rand/v2` gera jitter do backoff; não há dependência nova de retry.
 
 ## Decisões técnicas atuais
 
 | Área | Decisão | Local |
 |---|---|---|
 | Consumo | 5 workers, long polling 20 s, visibility 30 s, lote de 10 (padrões do core-sdk) | `core-sdk/pkg/aws/sqs/consumer.go` |
-| Transformação | `json.Unmarshal` direto em `TransactionCreated`, depois mapeamento manual | `internal/infra/message/consumer.go` |
+| Ciclo de vida | `LedgerEventsApi` e circuit breaker criados em `NewConsumer`, fechados em `Close()` | `internal/infra/message/consumer.go`, `cmd/main.go` |
+| Validação | `ErrInvalidMessage` para JSON inválido e campos obrigatórios ausentes | `internal/infra/message/errors.go` |
+| Precisão | `json.Number` + `decimal.NewFromString`, sem conversão por `float64` | `types.go`, `consumer.go` |
 | Domínio | `Event` sem methods, apenas dados | `internal/domain/ledger/event.go` |
-| Orquestração | `Service.CreateEvent` só adiciona tracing e delega | `internal/application/ledger/service.go` |
+| Orquestração | `Service.CreateEvent` adiciona tracing e delega ao provider | `internal/application/ledger/service.go` |
 | Abstração | `EventsProvider` com mock gerado por `go:generate` | `internal/application/ledger/interfaces.go` |
-| Integração | POST com `gobreaker`, headers de tenant/cid | `internal/infra/ledger/events/ledger_events.go` |
+| Integração | POST com breaker compartilhado, headers de tenant/cid/idempotência | `internal/infra/ledger/events/ledger_events.go` |
+| Retry | 3 tentativas, 100 ms base, teto 1 s, jitter 0,5–1,5, somente 429/5xx/rede | `ledger_events.go` |
 | DLQ | Movimento manual pelo core-sdk quando `ApproximateReceiveCount >= 10` | `core-sdk/pkg/aws/sqs/consumer.go` |
 
 ## Fluxo de execução
@@ -26,23 +29,23 @@
 ```text
 SQS balance-sqs-queue
   → sqs.Consumer (core-sdk, 5 workers)
-  → message.Handler
+  → Consumer.handle
       → tracer.NewSpanFromContext("Message::Handler")
-      → buildLedgerEvent (TransactionCreated → ledger.Event)
-      → service.CreateEvent
+      → buildLedgerEvent (valida → TransactionCreated → ledger.Event)
+      → Service.CreateEvent
           → tracer.NewSpanFromContext("Service::Handler")
           → LedgerEventsApi.CreateEvent
               → tracer.NewSpanFromContext("LedgerEventsApi::CreateEvent")
-              → circuitBreaker.Execute
-                  → POST {LEDGER_EVENTS_API_URL}/v1/ledger/events
+              → circuitBreaker.Execute (instância única)
+                  → até 3× POST {LEDGER_EVENTS_API_URL}/v1/ledger/events
   → sucesso: DeleteMessage | falha: manter na fila | 10 recebimentos: DLQ
 ```
 
 ## Transformação de dados
 
 ```text
-correlation_id ──────────────→ Cid ──────────────────→ header x-cid
-org_id ─────────────────────→ OrgID ─────────────────→ header x-tenant
+correlation_id ──────────────→ Cid ──────────────────→ x-cid + Idempotency-Key
+org_id ─────────────────────→ OrgID ─────────────────→ x-tenant
 program.id ─────────────────→ ProgramID ─────────────→ corpo program_id
 account_id ─────────────────→ AccountID ─────────────→ corpo account_id
 processing_code ────────────→ ProcessingCode ────────→ corpo processing_code
@@ -50,6 +53,13 @@ processing_code ────────────→ ProcessingCode ───
 amount[].description/value → Amounts map ───────────→ corpo amounts
 tax[].type/value ───────────→ Fees map ──────────────→ corpo fees
 ```
+
+## Retry e idempotência
+
+- `isRetryable`: `429` ou `>= 500`; erros de `httpClient.Do` também são retentáveis.
+- `4xx` diferentes de `429` falham imediatamente para não reproduzir erros de contrato.
+- O backoff usa `time.NewTimer` e `select` com `ctx.Done()`, respeitando shutdown.
+- `Idempotency-Key` usa o mesmo `correlation_id` de `x-cid`; a deduplicação é responsabilidade da API downstream.
 
 ## Configuração relevante
 
@@ -60,28 +70,28 @@ tax[].type/value ───────────→ Fees map ─────�
 | `AWS_*` | Endpoint, região e credenciais do cliente SQS. |
 | `LEDGER_EVENTS_API_URL` | Base URL da API downstream. |
 
-`config.MaxReceiveCount()` retorna `10` fixo. Não existe variável para ajustar workers, visibility timeout ou limites do circuit breaker.
+Número de tentativas, delays e limites do circuit breaker são constantes no código, não variáveis de ambiente.
 
 ## Verificação
 
-- Testes de unidade: `go test ./internal/application/ledger/...` e `go test ./internal/infra/ledger/events/...`.
-- Teste focado: `go test ./internal/application/ledger -run TestService_CreateEvent`.
-- Benchmark: `make bench-one name=BenchmarkCreateEvent_Success`.
-- Integração local depende de LocalStack, mockserver e alinhamento dos endpoints (spec 003).
+- `go test ./internal/infra/message` — conversão, precisão e validação.
+- `go test ./internal/infra/ledger/events` — headers, retry, breaker e idempotência.
+- `go test ./internal/application/ledger` — serviço e mocks.
+- `make bench-one name=BenchmarkCreateEvent_Success` — benchmark do serviço.
 
 ## Riscos e dívida técnica
 
-1. Pânico em mensagens sem `processing_code` ou `amount[].description`.
-2. Perda de precisão monetária pela conversão via `float64`.
-3. Ausência de idempotência: redelivery gera novos POSTs.
-4. `Close()` do cliente HTTP não é chamado no shutdown.
-5. Dependência de um singleton de config mutável dificulta testes isolados.
+1. Idempotência depende da API downstream; o worker não detecta duplicatas localmente.
+2. Retry em processo ocupa brevemente o worker; delays são fixos.
+3. Atributo de span `event_type` serializa a struct inteira.
+4. Sem métricas específicas para retry/breaker/mensagens inválidas.
+5. Config continua sendo um singleton mutável.
 
 ## Cobertura dos requisitos
 
 | Requisito | Evidência |
 |---|---|
-| RF-01, RF-07 | `internal/infra/message/consumer.go` + core-sdk |
-| RF-02 | `buildLedgerEvent`, `buildAmounts`, `buildFees` |
-| RF-03 a RF-06 | `internal/infra/ledger/events/ledger_events.go`, `types.go` |
-| RF-08 | `message.Handler`, `application.Service`, `LedgerEventsApi` |
+| RF-01, RF-09 | `internal/infra/message/consumer.go` + core-sdk |
+| RF-02, RF-03 | `buildLedgerEvent`, `parseDecimal`, `ErrInvalidMessage` |
+| RF-04 a RF-08, RF-11 | `internal/infra/ledger/events/ledger_events.go` |
+| RF-10 | `message.Consumer.handle`, `application.Service`, `LedgerEventsApi` |
