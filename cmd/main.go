@@ -12,8 +12,8 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/otel"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 	"github.com/clodoaldomarques/ledger-worker/config"
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/message"
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/server"
+	"github.com/clodoaldomarques/ledger-worker/internal/adapters/inbound/http/server"
+	message "github.com/clodoaldomarques/ledger-worker/internal/adapters/inbound/sqs"
 )
 
 func main() {

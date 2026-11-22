@@ -1,7 +1,7 @@
 package events
 
 import (
-	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
 	"github.com/shopspring/decimal"
 )
 

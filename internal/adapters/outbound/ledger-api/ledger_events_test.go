@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/clodoaldomarques/ledger-worker/config"
-	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"

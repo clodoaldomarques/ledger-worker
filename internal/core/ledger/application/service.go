@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
-	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
+	ports "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/ports"
 )
 
 type Service struct {
-	api EventsProvider
+	api ports.EventsProvider
 }
 
-func New(a EventsProvider) *Service {
+func New(a ports.EventsProvider) *Service {
 	return &Service{
 		api: a,
 	}

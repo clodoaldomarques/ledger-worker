@@ -10,9 +10,9 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 	"github.com/clodoaldomarques/ledger-worker/config"
-	service "github.com/clodoaldomarques/ledger-worker/internal/application/ledger"
-	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/ledger/events"
+	events "github.com/clodoaldomarques/ledger-worker/internal/adapters/outbound/ledger-api"
+	service "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/application"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
 	"github.com/shopspring/decimal"
 )
 

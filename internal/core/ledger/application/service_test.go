@@ -5,7 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/clodoaldomarques/ledger-worker/internal/domain/ledger"
+	"github.com/clodoaldomarques/ledger-worker/internal/core/ledger/domain"
+	ports "github.com/clodoaldomarques/ledger-worker/internal/core/ledger/ports"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -21,7 +22,7 @@ func TestService_CreateEvent(t *testing.T) {
 		{
 			name: "when create a event with success",
 			setup: func(ctrl *gomock.Controller) *Service {
-				a := NewMockEventsProvider(ctrl)
+				a := ports.NewMockEventsProvider(ctrl)
 				a.EXPECT().CreateEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				return New(a)
 			},
@@ -35,7 +36,7 @@ func TestService_CreateEvent(t *testing.T) {
 		{
 			name: "when create a event with error",
 			setup: func(ctrl *gomock.Controller) *Service {
-				a := NewMockEventsProvider(ctrl)
+				a := ports.NewMockEventsProvider(ctrl)
 				a.EXPECT().CreateEvent(gomock.Any(), gomock.Any()).Return(errors.New("wrong event")).Times(1)
 				return New(a)
 			},

@@ -9,7 +9,7 @@ import (
 	"github.com/clodoaldomarques/core-sdk/pkg/otel/tracer"
 	"github.com/clodoaldomarques/core-sdk/pkg/zap/logger"
 
-	"github.com/clodoaldomarques/ledger-worker/internal/infra/rest/shared"
+	"github.com/clodoaldomarques/ledger-worker/internal/adapters/inbound/http/shared"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 )
