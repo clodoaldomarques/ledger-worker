@@ -151,7 +151,9 @@ ledger-worker/
 │       └── rest/
 │           ├── server/
 │           └── shared/
-├── docs/model/
+├── docs/
+│   ├── model/
+│   └── specs/
 ├── scripts/
 │   ├── docker/
 │   ├── k8s/
@@ -194,6 +196,10 @@ Contains infrastructure and local development resources:
 - Docker configuration
 - Kubernetes manifests
 - Terraform configuration
+
+### `docs/`
+
+`docs/model/` contains the C4 PlantUML diagrams. `docs/specs/` contains Spec Kit-style specifications reconstructed from the current implementation (in Portuguese), with a short index in [`docs/specs/README.md`](docs/specs/README.md).
 
 ## Resilience
 
