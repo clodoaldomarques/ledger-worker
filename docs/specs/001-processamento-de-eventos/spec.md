@@ -1,12 +1,12 @@
 # Spec 001 — Processamento de eventos SQS → Ledger Events API
 
 **Status:** Implementado (reverse-engineered)  
-**Fonte:** `cmd/main.go`, `internal/infra/message/*`, `internal/application/ledger/*`, `internal/domain/ledger/*`, `internal/infra/ledger/events/*`, `core-sdk v0.8.8`  
+**Fonte:** `cmd/main.go`, `internal/adapters/inbound/sqs/*`, `internal/core/ledger/{application,domain,ports}/*`, `internal/adapters/outbound/ledger-api/*`, `core-sdk v0.8.8`  
 **Commit de referência:** `5794727` (spec original); comportamento atual atualizado após correções
 
 ## Visão geral
 
-O worker consome mensagens da fila `BALANCE_QUEUE`, valida e converte o JSON de transação em um `ledger.Event` e envia um `EventRequest` para `POST {LEDGER_EVENTS_API_URL}/v1/ledger/events`. O cliente da API e o circuit breaker são criados **uma única vez** em `message.NewConsumer`, compartilhados entre mensagens e fechados no graceful shutdown.
+O worker consome mensagens da fila `BALANCE_QUEUE`, valida e converte o JSON de transação em um `ledger.Event` e envia um `EventRequest` para `POST {LEDGER_EVENTS_API_URL}/v1/ledger/events`. O cliente da API e o circuit breaker são criados **uma única vez** em `cmd/main.go`, injetados no consumer e fechados no graceful shutdown por `Consumer.Close()`.
 
 O consumidor do `core-sdk` usa 5 workers concorrentes, long polling de 20 s, visibility timeout de 30 s e até 10 mensagens por recebimento — valores padrão da biblioteca, não sobrescritos por este projeto.
 
@@ -15,8 +15,8 @@ O consumidor do `core-sdk` usa 5 workers concorrentes, long polling de 20 s, vis
 ### US1 — Processar uma transação válida
 
 **Given** uma mensagem SQS com `processing_code`, `amount[].description` e valores decimais válidos  
-**When** `message.Consumer.handle` recebe a mensagem  
-**Then** um `ledger.Event` é construído e `Service.CreateEvent` delega ao `EventsProvider`  
+**When** `sqs.Consumer.Handle` recebe a mensagem  
+**Then** um `ledger.Event` é construído e `Service.CreateEvent` delega ao `LedgerEventPublisher`  
 **And** se a API responder `201`, o core-sdk deleta a mensagem da fila e o handler retorna `nil`.
 
 ### US2 — Rejeitar mensagem inválida antes de chamar a API
@@ -61,7 +61,7 @@ O consumidor do `core-sdk` usa 5 workers concorrentes, long polling de 20 s, vis
 
 ## Requisitos funcionais
 
-- **RF-01** Criar o consumidor com `sqs.NewConsumer(ctx, config.New(), con.handle)`, injetando o cliente API no handler.
+- **RF-01** Criar o consumidor SQS na raiz com `coresqs.NewConsumer(ctx, config, con.Handle)` e injetar `ProcessEventUseCase` e `LedgerEventPublisher` no adaptador.
 - **RF-02** Validar `processing_code` e `amount[].description` antes de desreferenciá-los, retornando `ErrInvalidMessage`.
 - **RF-03** Converter `TransactionCreated` em `ledger.Event` preenchendo `Cid`, `OrgID`, `ProgramID`, `AccountID`, `ProcessingCode`, `Producer`, `Amounts` e `Fees`.
 - **RF-04** Enviar `EventRequest` com `processing_code`, `program_id`, `account_id`, `producer`, `amounts` e `fees`.
@@ -75,7 +75,7 @@ O consumidor do `core-sdk` usa 5 workers concorrentes, long polling de 20 s, vis
 
 ## Entidades e contratos
 
-### Entrada — `TransactionCreated` (`internal/infra/message/types.go`)
+### Entrada — `TransactionCreated` (`internal/adapters/inbound/sqs/types.go`)
 
 | Campo JSON | Tipo | Destino no `ledger.Event` |
 |---|---|---|
@@ -111,8 +111,8 @@ O consumidor do `core-sdk` usa 5 workers concorrentes, long polling de 20 s, vis
 ## Critérios de aceite
 
 - `go test ./...` passa sem serviços externos.
-- `go test ./internal/infra/message` cobre conversão válida, precisão decimal e mensagens inválidas.
-- `go test ./internal/infra/ledger/events` cobre `201`, `400` sem retry, retry `5xx → 201`, circuit breaker aberto e envio de `Idempotency-Key`.
+- `go test ./internal/adapters/inbound/sqs` cobre conversão válida, precisão decimal, mensagens inválidas e uso da porta de entrada.
+- `go test ./internal/adapters/outbound/ledger-api` cobre `201`, `400` sem retry, retry `5xx → 201`, circuit breaker aberto e envio de `Idempotency-Key`.
 - Nenhum teste depende de Docker, LocalStack ou mockserver.
 
 ## Limitações conhecidas

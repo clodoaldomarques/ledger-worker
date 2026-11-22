@@ -1,12 +1,12 @@
 # Spec 002 — API de health (liveness/readiness)
 
 **Status:** Implementado (reverse-engineered)  
-**Fonte:** `internal/infra/rest/server/server.go`, `cmd/main.go`, `scripts/k8s/deployment.yaml`, `core-sdk v0.8.8`  
+**Fonte:** `internal/adapters/inbound/http/server/server.go`, `cmd/main.go`, `internal/core/ledger/ports/outbound.go`, `scripts/k8s/deployment.yaml`, `core-sdk v0.8.8`  
 **Commit de referência:** `5794727`
 
 ## Visão geral
 
-O worker expõe um servidor Echo com **apenas dois endpoints de health**. Não existem rotas de negócio HTTP: toda a funcionalidade chega pela fila SQS (spec 001). O servidor escuta em `APP_PORT` (padrão `5002`) e é desligado no graceful shutdown com contexto de 25 s. O verificador de readiness é o `message.Consumer` criado no startup e injetado em `server.New`, não um consumidor novo por requisição.
+O worker expõe um servidor Echo com **apenas dois endpoints de health**. Não existem rotas de negócio HTTP: toda a funcionalidade chega pela fila SQS (spec 001). O servidor escuta em `APP_PORT` (padrão `5002`) e é desligado no graceful shutdown com contexto de 25 s. O verificador de readiness é o `sqs.Consumer` criado no startup e injetado em `server.New` como `ports.HealthChecker`, não um consumidor novo por requisição.
 
 ## Cenários de uso
 
@@ -32,7 +32,7 @@ O worker expõe um servidor Echo com **apenas dois endpoints de health**. Não e
 
 - **RF-01** Registrar `GET /health/live` e `GET /health/ready` no `echo.Echo`.
 - **RF-02** Liveness retorna `200` incondicionalmente.
-- **RF-03** Readiness verifica a saúde da fila via `HealthChecker` injetado, implementado por `message.Consumer`.
+- **RF-03** Readiness verifica a saúde da fila via `ports.HealthChecker` injetado, implementado por `sqs.Consumer`.
 - **RF-04** Limitar a verificação de readiness a 500 ms com `context.WithTimeout` e `select` no resultado.
 - **RF-05** Retornar `503` quando a verificação falhar.
 - **RF-06** Aplicar os interceptadores de tracing e logging do core-sdk a todas as requisições.

@@ -135,26 +135,23 @@ ledger-worker/
 ├── config/
 │   └── config.go
 ├── internal/
-│   ├── application/
-│   │   └── ledger/
-│   │       ├── interfaces.go
-│   │       ├── service.go
-│   │       ├── mock.go
-│   │       ├── service_test.go
-│   │       └── bench_test.go
-│   ├── domain/
-│   │   └── ledger/
-│   │       └── event.go
-│   └── infra/
-│       ├── ledger/events/
-│       ├── message/
-│       └── rest/
-│           ├── server/
-│           └── shared/
+│   ├── core/ledger/
+│   │   ├── domain/                  # Event
+│   │   ├── application/             # Service, tests, benchmarks
+│   │   └── ports/                   # inbound.go, outbound.go, mock.go (gerado)
+│   └── adapters/
+│       ├── inbound/
+│       │   ├── sqs/                 # consumer, DTOs, validação
+│       │   └── http/
+│       │       ├── server/          # Echo, health
+│       │       └── shared/          # utilitários HTTP
+│       └── outbound/
+│           └── ledger-api/          # cliente HTTP, retry, circuit breaker
 ├── docs/
 │   ├── model/
 │   └── specs/
 ├── scripts/
+│   ├── check-architecture.sh
 │   ├── docker/
 │   ├── k8s/
 │   └── terraform/
@@ -166,28 +163,25 @@ ledger-worker/
 
 ### `cmd/`
 
-Application entry point and service initialization.
+Composition root: builds config, `LedgerEventsApi`, the use case, the SQS client, the consumer and the HTTP server exactly once, then injects them. It starts OpenTelemetry, the health server and the SQS consumer; SIGINT/SIGTERM triggers graceful shutdown (`s.Shutdown`, `con.Close`, `otel.Shutdown`).
 
-The application starts the HTTP server, initializes OpenTelemetry and starts the SQS consumer. The HTTP server exposes only health endpoints; SIGINT/SIGTERM triggers graceful shutdown.
+### `internal/core/ledger/`
 
-### `internal/application/`
+Hexagonal core, free of transport dependencies:
 
-Contains the application service that orchestrates the processing flow. `Service.CreateEvent` adds tracing and delegates to the `EventsProvider` abstraction. The mock in `mock.go` is generated from `interfaces.go` via `go:generate`.
+- `domain/`: only the `Event` model.
+- `application/`: `Service.CreateEvent` implements `ProcessEventUseCase`, adds tracing and delegates to `LedgerEventPublisher`.
+- `ports/`: `ProcessEventUseCase` (inbound) and `LedgerEventPublisher`/`HealthChecker` (outbound). `mock.go` is generated with `go generate ./internal/core/ledger/...`.
 
-### `internal/domain/`
+### `internal/adapters/`
 
-Contains domain-oriented components and business abstractions. The `ledger` package currently holds only the `Event` model.
+Infrastructure at the edges, always depending on the core:
 
-The domain layer does not depend directly on the messaging or HTTP infrastructure.
+- `inbound/sqs/`: SQS consumption, DTOs and message validation.
+- `inbound/http/server/`: Echo server with liveness/readiness via the injected `HealthChecker`.
+- `outbound/ledger-api/`: HTTP client with the unchanged retry policy and circuit breaker.
 
-### `internal/infra/`
-
-Contains infrastructure implementations such as:
-
-- SQS message handling
-- Ledger Events API integration
-- REST server
-- External service communication
+`make arch-check` enforces the dependency rule; see [`docs/specs/platform.md`](docs/specs/platform.md).
 
 ### `scripts/`
 
@@ -413,11 +407,12 @@ make test
 Run a single test or a single benchmark:
 
 ```bash
-go test ./internal/application/ledger -run TestService_CreateEvent
+go test ./internal/core/ledger/application -run TestService_CreateEvent
 make bench-one name=BenchmarkCreateEvent_Success
+make arch-check
 ```
 
-Tests are hermetic: they use `httptest` and mocks, so no Docker or LocalStack is required.
+Tests are hermetic: they use `httptest` and mocks, so no Docker or LocalStack is required. `make arch-check` fails if the core imports adapters, cloud SDKs, Echo, `config` or transport packages.
 
 ### Build the Docker image
 

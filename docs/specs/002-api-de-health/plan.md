@@ -13,12 +13,12 @@
 
 | Área | Decisão | Local |
 |---|---|---|
-| Rotas | Somente health; sem grupo de rotas de negócio | `internal/infra/rest/server/server.go` |
+| Rotas | Somente health; sem grupo de rotas de negócio | `internal/adapters/inbound/http/server/server.go` |
 | Códigos | `NoContent(http.StatusOK)` no sucesso; `NoContent(http.StatusServiceUnavailable)` na falha | `server.go` |
-| Checagem SQS | `HealthChecker` injetado: `message.Consumer` usa `GetQueueAttributes(QueueArn)` via core-sdk | `server.go`, `consumer.go`, core-sdk |
+| Checagem SQS | `ports.HealthChecker` injetado: `sqs.Consumer` usa `GetQueueAttributes(QueueArn)` via core-sdk | `server.go`, `consumer.go`, `ports/outbound.go`, core-sdk |
 | Timeout | `context.WithTimeout` de 500 ms + `select` entre resultado e `ctx.Done()` | `server.go` |
 | Interceptadores | `tracer.Interceptor()` e `logger.Interceptor()` registrados globalmente | `server.go` |
-| Validação | `CustomValidator` + `shared.EntityRequest`, sem uso efetivo hoje | `server.go`, `rest/shared` |
+| Validação | `CustomValidator` + `shared.EntityRequest`, sem uso efetivo hoje | `server.go`, `adapters/inbound/http/shared` |
 | Shutdown | `echo.Echo.Shutdown(ctx)` com 25 s | `cmd/main.go` |
 
 ## Fluxo de requisição
@@ -42,7 +42,7 @@ GET /health/ready → interceptadores → Readiness
 
 ## Verificação
 
-- Sem testes automatizados específicos para o servidor REST neste commit.
+- `go test ./internal/adapters/inbound/http/server` — liveness/readiness com fake de `ports.HealthChecker`.
 - Verificação manual: subir o worker com `.env` e chamar `curl -i http://localhost:5002/health/live` e `/health/ready`.
 - Com LocalStack fora: liveness deve continuar `200`, readiness deve retornar `503`.
 
@@ -57,6 +57,6 @@ GET /health/ready → interceptadores → Readiness
 
 | Requisito | Evidência |
 |---|---|
-| RF-01 a RF-03, RF-06 a RF-07 | `internal/infra/rest/server/server.go` |
+| RF-01 a RF-03, RF-06 a RF-07 | `internal/adapters/inbound/http/server/server.go` |
 | RF-04, RF-05 | `Readiness` |
 | RF-08 | `cmd/main.go` |

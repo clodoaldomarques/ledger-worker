@@ -20,5 +20,5 @@
 
 - [ ] Reavaliar o timeout de 500 ms e permitir configuração.
 - [ ] Fazer a liveness refletir a saúde do consumidor SQS, se desejado.
-- [ ] Adicionar testes automatizados para liveness e readiness.
+- [x] Adicionar testes automatizados para liveness e readiness (`server_test.go`, com fake de `ports.HealthChecker`).
 - [ ] Remover ou efetivamente usar `CustomValidator`/`EntityRequest`.
