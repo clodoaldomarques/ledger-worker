@@ -132,30 +132,30 @@ This allows the application logic to depend on abstractions rather than directly
 ledger-worker/
 ├── cmd/
 │   └── main.go
-│
 ├── config/
-│
+│   └── config.go
 ├── internal/
+│   ├── application/
+│   │   └── ledger/
+│   │       ├── interfaces.go
+│   │       ├── service.go
+│   │       ├── mock.go
+│   │       ├── service_test.go
+│   │       └── bench_test.go
 │   ├── domain/
 │   │   └── ledger/
-│   │       ├── event.go
-│   │       ├── interface.go
-│   │       └── service.go
-│   │
+│   │       └── event.go
 │   └── infra/
-│       ├── ledger/
-│       │   └── events/
+│       ├── ledger/events/
 │       ├── message/
 │       └── rest/
-│
-├── docs/
-│   └── model/
-│
+│           ├── server/
+│           └── shared/
+├── docs/model/
 ├── scripts/
 │   ├── docker/
 │   ├── k8s/
 │   └── terraform/
-│
 ├── docker-compose.yaml
 ├── Makefile
 ├── go.mod
@@ -166,11 +166,15 @@ ledger-worker/
 
 Application entry point and service initialization.
 
-The application starts the HTTP server, initializes OpenTelemetry and starts the SQS consumer.
+The application starts the HTTP server, initializes OpenTelemetry and starts the SQS consumer. The HTTP server exposes only health endpoints; SIGINT/SIGTERM triggers graceful shutdown.
+
+### `internal/application/`
+
+Contains the application service that orchestrates the processing flow. `Service.CreateEvent` adds tracing and delegates to the `EventsProvider` abstraction. The mock in `mock.go` is generated from `interfaces.go` via `go:generate`.
 
 ### `internal/domain/`
 
-Contains domain-oriented components and business abstractions.
+Contains domain-oriented components and business abstractions. The `ledger` package currently holds only the `Event` model.
 
 The domain layer does not depend directly on the messaging or HTTP infrastructure.
 
@@ -223,7 +227,7 @@ The circuit transitions after consecutive failures and temporarily prevents addi
              Ledger Events API
 ```
 
-The current configuration trips the circuit after more than five consecutive failures and keeps it open for a configured timeout.
+The current configuration trips the circuit after more than five consecutive failures and keeps it open for 15 seconds.
 
 ## Asynchronous Processing
 
@@ -275,13 +279,11 @@ The worker handles operating system termination signals and performs a graceful 
 The shutdown flow includes:
 
 1. Receive `SIGINT` or `SIGTERM`
-2. Stop accepting new HTTP requests
-3. Allow active operations to finish
-4. Shutdown OpenTelemetry
-5. Release application resources
-6. Complete service shutdown
+2. Stop the HTTP server using a context with a fixed 25-second timeout
+3. Shutdown OpenTelemetry
+4. Complete service shutdown
 
-The application currently provides a configurable timeout for the graceful shutdown process.
+The timeout is hardcoded in `cmd/main.go`, not configurable via environment variable.
 
 ## Infrastructure
 
@@ -308,35 +310,56 @@ Current infrastructure includes:
 - `balance-sqs-queue`
 - `balance-sqs-dlq-queue`
 
-The project uses the HashiCorp AWS provider configured to work with LocalStack.
+The project uses the HashiCorp AWS provider configured to work with LocalStack. The provider endpoints and the `make terraform` readiness check currently target the minikube node address `192.168.67.2:30002`, while Docker Compose publishes LocalStack on `localhost:4566`. See the note in [Start the local infrastructure](#start-the-local-infrastructure).
 
 ### Kubernetes
 
 The project includes Kubernetes manifests for:
 
 - Deployment
-- Service
-- ConfigMap
+- Service (`LoadBalancer`, port `5002`, node port `31002`)
+- ConfigMap (currently empty)
 
 The worker deployment is configured with:
 
 - Container resource requests and limits
-- AWS configuration
+- AWS configuration from an `aws-credentials` secret
 - SQS queue configuration
 - Ledger Events API endpoint
 - OpenTelemetry endpoint
 - Service name
 
+The deployment pulls `clodoaldomarques/ledger-worker:latest` with `imagePullPolicy: Always`, so publish that tag before applying the manifests.
+
 ## Local Development
 
 ### Requirements
 
-- Go 1.26+
+- Go 1.26.1+ (the Docker build uses Go 1.27.1)
 - Docker
 - Docker Compose
 - Terraform
 - AWS CLI
 - Kubernetes / Minikube (optional)
+
+### Configuration
+
+`.env` is gitignored and the repository has no example file. `make run` loads it with `export $(cat .env | xargs)`. A local setup can start from:
+
+```bash
+AWS_ADDRESS="http://localhost:4566"
+AWS_REGION="us-east-1"
+AWS_ACCESS_KEY_ID="test"
+AWS_SECRET_ACCESS_KEY="test"
+BALANCE_QUEUE="http://localhost:4566/000000000000/balance-sqs-queue"
+LEDGER_EVENTS_API_URL="http://localhost:1080"
+OTEL_EXPORTER_OTLP_ENDPOINT="localhost:4317"
+OTEL_SERVICE_NAME="ledger-events"
+```
+
+Optional variables: `APP_PORT` (default `5002`) and `BALANCE_QUEUE_DLQ` (default empty).
+
+See `AGENTS.md` for a compact summary of verification commands and known local-infra gotchas.
 
 ### Clone
 
@@ -353,6 +376,8 @@ make up
 
 This starts the Docker Compose development environment and provisions the required Terraform resources.
 
+> **Endpoint mismatch:** the local setup currently mixes two AWS endpoints. Docker Compose and `.env` use `localhost:4566`; Terraform and the `make terraform` readiness wait target the minikube NodePort `192.168.67.2:30002`; `make send-event` still hardcodes the old `192.168.49.2:30002`. Align these before relying on an end-to-end local run.
+
 ### Run the application
 
 Configure the required environment variables and run:
@@ -361,7 +386,7 @@ Configure the required environment variables and run:
 make run
 ```
 
-Alternatively:
+Alternatively, after exporting the variables yourself (the direct command does not load `.env`):
 
 ```bash
 go run cmd/main.go
@@ -370,20 +395,31 @@ go run cmd/main.go
 ### Run tests
 
 ```bash
+go test ./...
+```
+
+`make test` also writes `cover.out` and opens the HTML coverage report in a browser:
+
+```bash
 make test
 ```
 
-Or directly:
+Run a single test or a single benchmark:
 
 ```bash
-go test ./...
+go test ./internal/application/ledger -run TestService_CreateEvent
+make bench-one name=BenchmarkCreateEvent_Success
 ```
+
+Tests are hermetic: they use `httptest` and mocks, so no Docker or LocalStack is required.
 
 ### Build the Docker image
 
 ```bash
-make build
+make build version=0.1.0
 ```
+
+Pass `version=`; without it the image tags become empty and `:latest`.
 
 ### Deploy to Kubernetes
 
@@ -391,11 +427,15 @@ make build
 make apply
 ```
 
+This also runs Terraform, and assumes the `aws-credentials` secret and the published `clodoaldomarques/ledger-worker:latest` image exist.
+
 ### Remove the Kubernetes deployment
 
 ```bash
 make destroy
 ```
+
+This deletes the Kubernetes resources and destroys the Terraform-managed queues.
 
 ## Sending a Test Event
 
@@ -405,7 +445,7 @@ The project provides a Make target for sending an example event to the SQS queue
 make send-event
 ```
 
-This allows the complete asynchronous processing flow to be exercised locally.
+The payload comes from `scripts/docker/localstack/event.json`. Note that the target still points at `192.168.49.2:30002` (see the endpoint mismatch note above), and the local mockserver expectations define only `GET /v1/ledger/config/...`, not the worker's `POST /v1/ledger/events`. Add a matching expectation before expecting a successful end-to-end run.
 
 ## Technology Stack
 
@@ -488,7 +528,7 @@ Possible improvements for the project include:
 - Idempotency handling for message processing
 - Automated integration tests using LocalStack
 - End-to-end test scenarios
-- Health and readiness probes
+- Align LocalStack endpoints across Compose, Terraform and the Makefile
 - Improved Kubernetes deployment strategy
 - Horizontal scaling based on queue depth
 - Automated CI/CD pipeline
