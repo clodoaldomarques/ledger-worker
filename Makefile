@@ -58,6 +58,9 @@ send-event:
 # Testes
 # =============================================================================
 
+arch-check:
+	./scripts/check-architecture.sh
+
 test:
 	go test ./... -coverprofile cover.out
 	go tool cover -html=cover.out

@@ -14,6 +14,8 @@ Este diretório contém especificações **reconstruídas a partir da implementa
 
 Como são specs de software já implementado, o status é `Implementado (reverse-engineered)`. Quando o README sugeria algo que o código não faz, o texto diz explicitamente.
 
+A verificação local inclui `go test ./...`, `go build ./...`, `go vet ./...` e `make arch-check` (spec 005). A guarda arquitetural falha com arquivo e linha quando `internal/core/**` importa adapters, SDK de nuvem, Echo, `config` ou transporte do `core-sdk`. `make test` não é adequado para automação porque abre o relatório HTML no navegador.
+
 ## Índice
 
 | ID | Capacidade | Status |
